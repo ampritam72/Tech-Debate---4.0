@@ -96,7 +96,7 @@ export const AdminDashboardPage: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // Export all registered team data as a comprehensive CSV file for offline record keeping
+  // Export all registered team data as a 22-column CSV matching the Google Sheet layout (A1:V1)
   const handleExportCSV = () => {
     const escapeCsvField = (value: unknown): string => {
       if (value === null || value === undefined) return '""';
@@ -105,37 +105,28 @@ export const AdminDashboardPage: React.FC = () => {
     };
 
     const headers = [
+      'Timestamp',
       'Team ID',
       'Team Name',
       'Batch',
       'Department',
-      'Team Status',
-      'Registration Date',
-      'Payment Status',
       'Payment Method',
+      'Sender Number',
+      'Trx ID',
       'Amount (BDT)',
-      'Transaction ID (TrxID)',
-      'Sender Phone',
-      'Verified At',
-      'Rejection Reason',
-      'Speaker 1 (Leader) Name',
-      'Speaker 1 Student ID',
+      'Payment Status',
+      'Speaker 1 (Leader)',
+      'Speaker 1 ID',
       'Speaker 1 Batch',
-      'Speaker 1 Semester',
       'Speaker 1 Phone',
-      'Speaker 1 Email',
-      'Speaker 2 Name',
-      'Speaker 2 Student ID',
+      'Speaker 2',
+      'Speaker 2 ID',
       'Speaker 2 Batch',
-      'Speaker 2 Semester',
       'Speaker 2 Phone',
-      'Speaker 2 Email',
-      'Speaker 3 Name',
-      'Speaker 3 Student ID',
+      'Speaker 3',
+      'Speaker 3 ID',
       'Speaker 3 Batch',
-      'Speaker 3 Semester',
       'Speaker 3 Phone',
-      'Speaker 3 Email',
     ];
 
     const rows = teams.map(t => {
@@ -144,41 +135,32 @@ export const AdminDashboardPage: React.FC = () => {
       const s3 = t.members.find(m => m.speakerRole === 3) || t.members[2];
 
       return [
+        escapeCsvField(t.registrationDate || new Date().toISOString()),
         escapeCsvField(t.id),
         escapeCsvField(t.name),
         escapeCsvField(t.batch),
-        escapeCsvField(t.department || 'CSE'),
-        escapeCsvField(t.status),
-        escapeCsvField(t.registrationDate ? new Date(t.registrationDate).toLocaleString() : ''),
-        escapeCsvField(t.payment?.status || t.status),
-        escapeCsvField(t.payment?.method || ''),
-        escapeCsvField(t.payment?.amount ?? 350),
-        escapeCsvField(t.payment?.transactionId || ''),
+        escapeCsvField(t.department || 'Department of CSE, Varendra University, Rajshahi'),
+        escapeCsvField(t.payment?.method || 'bKash'),
         escapeCsvField(t.payment?.senderNumber || ''),
-        escapeCsvField(t.payment?.verifiedAt ? new Date(t.payment.verifiedAt).toLocaleString() : ''),
-        escapeCsvField(t.payment?.rejectionReason || ''),
+        escapeCsvField(t.payment?.transactionId || ''),
+        escapeCsvField(t.payment?.amount ?? 350),
+        escapeCsvField(t.payment?.status || t.status || 'PENDING'),
         escapeCsvField(s1?.fullName || ''),
         escapeCsvField(s1?.studentId || ''),
         escapeCsvField(s1?.batch || t.batch || ''),
-        escapeCsvField(s1?.semester || ''),
         escapeCsvField(s1?.phone || ''),
-        escapeCsvField(s1?.email || ''),
         escapeCsvField(s2?.fullName || ''),
         escapeCsvField(s2?.studentId || ''),
         escapeCsvField(s2?.batch || t.batch || ''),
-        escapeCsvField(s2?.semester || ''),
         escapeCsvField(s2?.phone || ''),
-        escapeCsvField(s2?.email || ''),
         escapeCsvField(s3?.fullName || ''),
         escapeCsvField(s3?.studentId || ''),
         escapeCsvField(s3?.batch || t.batch || ''),
-        escapeCsvField(s3?.semester || ''),
         escapeCsvField(s3?.phone || ''),
-        escapeCsvField(s3?.email || ''),
       ].join(',');
     });
 
-    // Prepend UTF-8 BOM (\uFEFF) so Microsoft Excel & offline spreadsheet apps open UTF-8 characters cleanly
+    // Prepend UTF-8 BOM (\uFEFF) so Microsoft Excel & Google Sheets open UTF-8 characters cleanly
     const csvString = '\uFEFF' + [headers.map(escapeCsvField).join(','), ...rows].join('\r\n');
     const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -186,13 +168,13 @@ export const AdminDashboardPage: React.FC = () => {
 
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `tech_debate_4_registered_teams_${dateStamp}.csv`);
+    link.setAttribute('download', `tech_debate_4_registered_teams_22col_${dateStamp}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    setClearSuccessToast(`Exported ${teams.length} registered ${teams.length === 1 ? 'team' : 'teams'} to CSV for offline record keeping.`);
+    setClearSuccessToast(`Exported ${teams.length} registered ${teams.length === 1 ? 'team' : 'teams'} (22 columns A1:V1) to CSV.`);
     setTimeout(() => setClearSuccessToast(null), 4000);
   };
 

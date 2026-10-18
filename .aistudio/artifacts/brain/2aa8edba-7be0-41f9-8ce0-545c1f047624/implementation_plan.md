@@ -1,133 +1,91 @@
-# Real-Time Cloud Registration Sync (Firebase Cloud Firestore) & Strict Submission Verification
+# 22-Column Google Sheet Auto-Push Alignment & Live Sync Preview
 
-Unify team registrations, payment verification, and live squad counters across the public Vercel deployment and the AI Studio Admin Console using **Firebase Cloud Firestore** as the shared real-time cloud database, while strictly blocking any fake local-only success screens when cloud persistence fails.
-
----
+Align the real-time Google Apps Script auto-push engine, CSV exporter, and Admin Console sheet preview with the exact 22-column (`A1:V1`) structure of your Google Sheet so every new squad registration and payment verification updates your spreadsheet with zero column shift.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The following architectural decisions were confirmed during clarification to eliminate silent `localStorage`-only registrations on Vercel:
+> Because a standard `docs.google.com/spreadsheets/d/...` link is read-only to anonymous student browsers, 24/7 automatic row insertion from any student's phone works through the **Google Apps Script Web App URL** (`script.google.com/macros/s/.../exec`) attached to your sheet and stored in Firebase Cloud Firestore.
 
-- **Confirmed Decision 1 — Shared Real-Time Cloud Database (`Firebase Cloud Firestore`)**: Because Vercel hosts a static SPA bundle without direct access to the internal AI Studio Cloud SQL instance or cookie-gated Cloud Run proxy, **Firebase Cloud Firestore** will serve as the primary, globally accessible real-time cloud store. Both the Vercel site and the AI Studio preview connect directly to the same Firestore database (`teams` collection) via the Firebase Web SDK (`onSnapshot`), ensuring any registration on Vercel appears instantaneously in the Admin Dashboard and live Home Page counters everywhere.
-- **Confirmed Decision 2 — Strict Cloud Persistence Gate (Zero Fake Success Screen)**: The previous offline `localStorage` fallback (`isLocalFallback: true`) that showed a celebratory registration voucher when the cloud database could not be reached will be completely removed. A registration is only marked successful—and the Digital Registration Voucher is only displayed—after Firestore (and the backend API when available) confirms the write transaction committed to the cloud. If the cloud write fails or times out, a clear error alert is shown and the user stays on Step 3 so they can retry without losing their form inputs.
-- **Automatic Local-to-Cloud Recovery**: Any teams previously trapped in a browser's `localStorage` queue (`td4_unsynced_teams_v4`) will be automatically migrated into Cloud Firestore when that browser next opens the site.
-
----
+- **Confirmed Decision 1 (Connection Method)**: 24/7 automatic push via Google Apps Script Web App URL persisted in Firebase Cloud Firestore (`settings/google_sheet`), supplemented by 1-click Google OAuth direct sync in the Admin Panel.
+- **Confirmed Decision 2 (Exact 22-Column Schema)**: Strictly preserve the 22 columns (`A1:V1`) in your sheet:
+  1. `Timestamp`
+  2. `Team ID`
+  3. `Team Name`
+  4. `Batch`
+  5. `Department`
+  6. `Payment Method`
+  7. `Sender Number`
+  8. `Trx ID`
+  9. `Amount (BDT)`
+  10. `Payment Status`
+  11. `Speaker 1 (Leader)`
+  12. `Speaker 1 ID`
+  13. `Speaker 1 Batch`
+  14. `Speaker 1 Phone`
+  15. `Speaker 2`
+  16. `Speaker 2 ID`
+  17. `Speaker 2 Batch`
+  18. `Speaker 2 Phone`
+  19. `Speaker 3`
+  20. `Speaker 3 ID`
+  21. `Speaker 3 Batch`
+  22. `Speaker 3 Phone`
 
 ## 1. Overview & Core Concept
 
-- **What It Does**: Connects every client instance of the **Premier University CSE Intra-Departmental Tech Debate 4.0** portal (whether accessed via the public Vercel URL, mobile browsers, or AI Studio) to a single authoritative **Firebase Cloud Firestore** database with real-time `onSnapshot` listeners and dual-write synchronization with the PostgreSQL backend.
-- **Target Audience / Persona**:
-  - **Debate Teams (Students on Vercel / Mobile)**: Need 100% certainty that when they see the "Registration Confirmed" voucher, their squad (`TD4-TEAM-XXX`), speaker roster, and bKash/Nagad/Rocket `TrxID` are permanently recorded in the organizers' central database.
-  - **Tournament Organizers & Admins**: Need instant visibility of all newly registered squads, live team counters on the Home Page, one-click payment verification/rejection, and full 31-column CSV export from any device without discrepancies between Vercel and AI Studio.
-- **Key Value**: Eliminates split-brain state between Vercel and AI Studio, guarantees zero lost registrations, enforces atomic uniqueness checks (`Team Name`, `Student ID`, `Transaction ID`), and provides real-time synchronization across all connected screens.
-
----
+- **What It Does**: Ensures that the Apps Script template, client/server webhook payload formatter, direct Google OAuth writer, and CSV exporter all map 1-to-1 to your exact 22 columns (`A1:V1`). Adds an interactive **Live 22-Column Sheet Preview Table** inside the Admin Panel's Google Sheet Backup tab so you can inspect the exact rows formatted for your sheet and push/verify them in one click.
+- **Target Audience / Persona**: Tournament Organizers and Super Admins of the Department of CSE, Varendra University, Rajshahi.
+- **Key Value**: Eliminates any column mismatch between your existing Google Sheet header row and incoming student registrations, while providing visual confirmation of every row being pushed.
 
 ## 2. User Experience & Visual Design
 
 - **Key User Flows**:
-  1. **Public Team Registration (3-Step Wizard -> Cloud Commit -> Verified Voucher)**:
-     - **Step 1 (Squad Info)** & **Step 2 (3 Speakers)**: Validates against the live Cloud Firestore `teams` list in real time so duplicate team names or student IDs are caught immediately.
-     - **Step 3 (Payment & Submission)**: When the user clicks **Complete Registration**, the button enters a locked `Verifying & Saving to Cloud Database...` loading state.
-     - **Cloud Verification Gate**:
-       - *On Confirmed Cloud Commit*: Fires confetti, generates the official `TD4-TEAM-XXX` voucher with a **Cloud Database Verified** status indicator, and updates the live team counter across all open browsers within milliseconds.
-       - *On Network / Cloud Error*: Blocks the success screen, displays a high-contrast crimson diagnostic banner explaining the exact reason (e.g., duplicate `TrxID`, network disconnection, or permission error), and preserves all entered fields on Step 3 for immediate retry.
-  2. **Admin Console Live Sync & Offline CSV Export**:
-     - The Admin Dashboard header displays a live **Cloud Firestore Synced** status indicator and team counter (`tabular-nums`).
-     - Approving or rejecting a payment (`VERIFIED` / `REJECTED`), changing team status, or deleting a test entry mutates Cloud Firestore directly (and syncs with PostgreSQL), immediately reflecting on the public Home Page and Registration Roster.
-     - Clicking **Download Teams CSV** exports the live cloud-synced dataset with all 31 columns in UTF-8 BOM Excel format.
-
+  1. **Exact 22-Column Apps Script Copy & Deploy**:
+     - The Admin copies the 22-column Apps Script from the Admin Console, pastes it into `Extensions > Apps Script` inside their Google Sheet, deploys as a Web App (`Anyone`), and saves the Web App URL in the Admin Console.
+  2. **24/7 Automatic Push on Every Registration**:
+     - Whenever any student registers on the website, their 22 fields are automatically sent to the cloud-saved Web App URL and appended (or updated in place by `Team ID` in Column B) in your Google Sheet.
+  3. **Live 22-Column Sheet Preview in Admin Console**:
+     - Directly inside the **Google Sheet Backup** tab, the admin can view a live horizontal spreadsheet preview showing all 22 columns (`Timestamp` through `Speaker 3 Phone`) populated with current Firestore registrations, along with one-click **Send Test Row** and **Sync All Squads Now** actions.
 - **Visual Identity & Theme**:
-  - *Aesthetic Direction*: High-craft dark UI console for an engineering university championship — crisp structural surfaces, single-elevation cards with `1px solid` hairline borders (`border-slate-800`), and zero decorative bloat.
-  - *Color Palette & Mood*:
-    - **60% Dominant Canvas**: Deep obsidian slate (`#020617` / `bg-slate-950`).
-    - **30% Structural Surfaces**: Elevated slate containers (`#0F172A` / `bg-slate-900/90`) with subtle hairline borders (`border-slate-800/80`).
-    - **10% Semantic Accents**: Cyan (`#06B6D4`) for primary interactive CTAs, Emerald (`#10B981`) for verified cloud commits, Amber (`#F59E0B`) for pending review states, and Crimson (`#EF4444`) for blocking submission errors.
-  - *Typography & Hierarchy*:
-    - Display & Section Headings: Geometric sans with balanced wrapping (`text-wrap: balance`).
-    - Body Copy: High-legibility sans at `14px–16px` for form inputs and instructions.
-    - Telemetry, Team IDs (`TD4-TEAM-101`), Student IDs, Phone Numbers, and Counters: Strict monospace tabular numerals (`font-mono tabular-nums`) for vertical alignment across tables and vouchers.
-
----
+  - *Aesthetic Direction*: Clean SaaS data-grid and operations console matching the tournament's dark slate and emerald/cyan palette.
+  - *Color Palette & Mood*: Deep slate canvas (`#091428`), crisp 1px cell borders (`border-slate-800`), emerald status indicators (`#10B981`) for `VERIFIED`, amber (`#F59E0B`) for `PENDING`, and rose (`#F43F5E`) for `REJECTED`.
+  - *Typography & Hierarchy*: Monospace tabular numerals (`font-mono tabular-nums`) for timestamps, Student IDs, phone numbers, Transaction IDs, and BDT amounts.
+  - *Component Styling & Layout*: Single-elevation cards with a compact 22-column scrollable spreadsheet preview table and single-line action buttons (`whitespace-nowrap shrink-0`).
+- **Interactive Feedback & Motion**: Immediate toast confirmation on webhook save, test row dispatch, and bulk sync, with real-time `lastSyncAt` timestamp updates from Cloud Firestore.
 
 ## 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Primary Cloud Firestore Persistence with Dual-Write Backend Sync**
-  - *Chosen Approach*: Provision Firebase Cloud Firestore in the project and read/write registrations directly to the Firestore `teams` collection from the client SDK, while also mirroring writes to `/api/register` when the Express/PostgreSQL backend is reachable.
-  - *Why*: Vercel static deployments only deploy the frontend bundle (`dist/`) and cannot reach AI Studio's private Cloud SQL or authenticated Cloud Run proxy due to cross-origin session cookies. Firebase Cloud Firestore works natively over HTTPS from any domain (Vercel, custom domain, localhost, and AI Studio) in real time.
-  - *Alternatives Considered*: Relying solely on `REMOTE_API_BASE` pointing to Cloud Run (fails from external browsers because the AI Studio proxy intercepts cross-origin requests without an active Google session cookie).
-
-- **Decision 2: Strict Fail-Closed Submission (Removing `localStorage` Fallback)**
-  - *Chosen Approach*: Remove `isLocalFallback: true` from `registerTeam`. Require `setDoc` / transaction commit to Cloud Firestore to resolve before returning a `Team` object to `RegistrationWizard`.
-  - *Why*: Showing a success voucher when data was only saved in the user's phone browser `localStorage` misled participants into thinking their registration reached the organizers. Failing closed with a clear retry message guarantees 100% data integrity.
-
-- **Decision 3: Deterministic Uniqueness Enforcement in Cloud Firestore**
-  - *Chosen Approach*: Before committing a new team document `/teams/{teamId}`, query the live Firestore `teams` collection (and run a transaction) to verify that the **Team Name**, all three **Student IDs**, and the payment **Transaction ID (`TrxID`)** do not already exist, and assign the next sequential `TD4-TEAM-XXX` ID atomically.
-  - *Why*: Prevents race conditions or duplicate submissions when multiple squads register simultaneously from Vercel.
-
----
+- **Decision 1: Strict 22-Column (`A1:V1`) Alignment Across All Sync Paths**
+  - *Chosen Approach*: Remove the extra 23rd `Team Status` column from the Apps Script and CSV export so that Column K (`11`) is always `Speaker 1 (Leader)` and Column V (`22`) is always `Speaker 3 Phone`, matching your existing sheet header row character-for-character.
+  - *Why*: Your Google Sheet already has the 22 headers in `A1:V1`; keeping the exact 22-element array prevents any column shift for Speaker 1, Speaker 2, and Speaker 3 details.
+  - *Alternatives Considered*: Adding extra columns in the middle of the row (rejected because it shifts existing speaker columns).
 
 ## 4. Technical Architecture & Data Strategy *(Technical Reference)*
 
-### Architecture & Component Diagram
+- **Architecture & Component Diagram**:
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                   CLIENT BROWSERS (Vercel Domain & AI Studio)                │
-│                                                                              │
-│  ┌─────────────────────────┐  ┌──────────────────────┐  ┌─────────────────┐  │
-│  │   RegistrationWizard    │  │   HomePage Counter   │  │ AdminDashboard  │  │
-│  │ (3-Step Form & Voucher) │  │  & Public Team List  │  │ (Verify / CSV)  │  │
-│  └────────────┬────────────┘  └──────────┬───────────┘  └────────┬────────┘  │
-│               │                          │                       │           │
-│               ▼                          ▼                       ▼           │
-│  ┌────────────────────────────────────────────────────────────────────────┐  │
-│  │                TournamentContext (Real-Time State Engine)              │  │
-│  │  • Subscribes to Firestore `onSnapshot(collection(db, 'teams'))`       │  │
-│  │  • Enforces strict cloud-commit before resolving `registerTeam()`      │  │
-│  │  • Auto-migrates any legacy `unsynced` localStorage teams on boot      │  │
-│  └──────────────────────┬─────────────────────────────────┬───────────────┘  │
-└─────────────────────────┼─────────────────────────────────┼──────────────────┘
-                          │ (1) Primary Real-Time Sync      │ (2) Mirror Sync
-                          │     (Works on Vercel & AIS)     │     (When on AIS)
-                          ▼                                 ▼
-        ┌───────────────────────────────────┐     ┌────────────────────────────┐
-        │   FIREBASE CLOUD FIRESTORE (db)   │     │  Express + Cloud SQL API   │
-        │  • `/teams/{teamId}`              │     │  • `/api/register`         │
-        │  • `/notices/{noticeId}`          │     │  • `/api/teams`            │
-        │  • `/fixtures/{fixtureId}`        │     │  • `/api/admin/*`          │
-        │  • Hardened `firestore.rules`     │     └────────────────────────────┘
-        └───────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────┐
+│                   22-COLUMN (A1:V1) GOOGLE SHEET PIPELINE                  │
+│                                                                            │
+│  ┌──────────────────────┐     22-Field Row Payload      ┌───────────────┐  │
+│  │  formatTeamForSheet  │ ────────────────────────────► │ Apps Script   │  │
+│  │  (A1: Timestamp ...  │                               │ Web App URL   │  │
+│  │   V1: Speaker3Phone) │ ────────────────────────────► │ (Upsert by B) │  │
+│  └──────────▲───────────┘     Direct OAuth API (A1:V1)  └───────┬───────┘  │
+│             │                                                   │          │
+│  ┌──────────┴───────────┐                                       ▼          │
+│  │  TournamentContext   │                               ┌───────────────┐  │
+│  │  & Admin Backup UI   │                               │ Google Sheet  │  │
+│  │  (Live 22-Col Table) │                               │ Columns A - V │  │
+│  └──────────────────────┘                               └───────────────┘  │
+└────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Data Model & State (`firebase-blueprint.json` & Firestore Collections)
-
-- **`/teams/{teamId}` (`Team` Entity)**:
-  - `id`: string (`^TD4-TEAM-[0-9]+$`, max 32 chars)
-  - `name`: string (3–80 chars)
-  - `batch`: string (max 32 chars)
-  - `department`: string (max 100 chars)
-  - `leaderId`: string (max 64 chars)
-  - `registrationDate`: ISO timestamp string (max 40 chars)
-  - `status`: enum (`'PENDING' | 'APPROVED' | 'REJECTED'`)
-  - `notes`: optional string (max 500 chars)
-  - `members`: bounded list (exactly 3 speaker objects containing `id`, `teamId`, `speakerRole`, `fullName`, `studentId`, `batch`, `semester`, `phone`, `email`, `isLeader`)
-  - `payment`: nested map (`id`, `teamId`, `method` in `['bKash', 'Nagad', 'Rocket']`, `senderNumber`, `transactionId`, `amount`, `status` in `['PENDING', 'VERIFIED', 'REJECTED']`, `verifiedAt`, `rejectionReason`)
-
-### Interactive Component & State Mapping
-
-1. **Firebase Provisioning & Initialization**:
-   - Provision Firestore via the Firebase setup flow so `firebase-applet-config.json` includes `firestoreDatabaseId`.
-   - Initialize `db = getFirestore(app, firebaseConfig.firestoreDatabaseId)` and validate connectivity on boot using `getDocFromServer`.
-   - Deploy hardened `firestore.rules` allowing validated team registrations and admin management operations, plus structured `handleFirestoreError` diagnostics.
-2. **Real-Time Listener & Initial Seed Migration (`TournamentContext`)**:
-   - Attach an `onSnapshot` listener on `/teams` (ordered by `registrationDate` descending).
-   - Sync any existing PostgreSQL teams and any legacy `td4_unsynced_teams_v4` entries into Firestore automatically so zero existing records are lost.
-3. **Strict Registration Handler (`registerTeam` & `RegistrationWizard`)**:
-   - Validate uniqueness of Team Name, Student IDs, and `TrxID` against the live Firestore snapshot.
-   - Write the new `Team` document directly to Firestore `/teams/{teamId}` using `setDoc` (and mirror to `/api/register` in the background if available).
-   - If the Firestore write throws or times out (e.g. offline/network failure), throw an explicit user-facing error that `RegistrationWizard` renders in the Step 3 error alert banner, preventing `setShowSuccessModal(true)` from firing until the cloud write succeeds.
-4. **Admin Mutations (`updatePaymentStatus`, `updateTeamStatus`, `deleteTeam`, `clearAllRegistrations`)**:
-   - Execute `updateDoc` / `deleteDoc` directly against Firestore `/teams/{teamId}` (alongside the Express API call) so changes made in the Admin Panel immediately propagate to all Vercel and AI Studio clients.
+- **Data Model & State**:
+  - **22-Column Row Array (`A` to `V`)**:
+    - `[0] Timestamp`, `[1] Team ID`, `[2] Team Name`, `[3] Batch`, `[4] Department`, `[5] Payment Method`, `[6] Sender Number`, `[7] Trx ID`, `[8] Amount (BDT)`, `[9] Payment Status`, `[10] Speaker 1 (Leader)`, `[11] Speaker 1 ID`, `[12] Speaker 1 Batch`, `[13] Speaker 1 Phone`, `[14] Speaker 2`, `[15] Speaker 2 ID`, `[16] Speaker 2 Batch`, `[17] Speaker 2 Phone`, `[18] Speaker 3`, `[19] Speaker 3 ID`, `[20] Speaker 3 Batch`, `[21] Speaker 3 Phone`.
+- **Interactive Component & State Mapping**:
+  - **Apps Script (`teamToRowArray`)**: Outputs the exact 22-element array above, prefixes phone numbers and Student IDs with `'` so Google Sheets preserves leading zeros (`017...`), and colors Column J (`10`, `Payment Status`) based on `VERIFIED` / `REJECTED` / `PENDING`.
+  - **Live 22-Column Sheet Preview**: Renders the exact 22 columns in the Admin Console so the admin can visually verify how every registered squad row looks in the spreadsheet.

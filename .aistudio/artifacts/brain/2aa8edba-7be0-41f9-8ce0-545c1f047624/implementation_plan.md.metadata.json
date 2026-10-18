@@ -1,6 +1,6 @@
 {
-  "summary": "Implementation plan for real-time cross-origin registration and admin synchronization via Firebase Cloud Firestore across Vercel and AI Studio, with strict cloud-write verification that blocks fake local-only success screens.",
-  "updatedAt": "2026-10-18T13:21:08.799539257Z",
+  "summary": "Implementation plan to align the 24/7 Google Apps Script auto-push backup, client CSV export, and live sheet preview with the exact 22-column layout (A1:V1) of the user's Google Sheet.",
+  "updatedAt": "2026-10-18T18:26:31.913507369Z",
   "requestFeedback": true,
   "userFacing": true
 }

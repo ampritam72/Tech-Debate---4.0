@@ -3,6 +3,7 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import {
   getFirestore,
   doc,
+  getDoc,
   getDocFromServer,
   getDocsFromServer,
   getDocs,
@@ -288,8 +289,145 @@ export function sanitizeScheduleForFirestore(item: ScheduleItem): Record<string,
   };
 }
 
+export interface GoogleSheetCloudSettings {
+  id: string;
+  webhookUrl: string;
+  directSheetUrl?: string;
+  autoSync: boolean;
+  lastSyncAt?: string;
+  lastStatus: string;
+  updatedAt?: string;
+}
+
+export function sanitizeGoogleSheetSettingsForFirestore(
+  settings: Partial<GoogleSheetCloudSettings>
+): Record<string, any> {
+  const sanitized: Record<string, any> = {
+    id: 'google_sheet',
+    webhookUrl: String(settings.webhookUrl || '').trim().slice(0, 600),
+    autoSync: settings.autoSync !== undefined ? Boolean(settings.autoSync) : true,
+    lastStatus: String(settings.lastStatus || 'ACTIVE').trim().slice(0, 120),
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (settings.directSheetUrl !== undefined) {
+    sanitized.directSheetUrl = String(settings.directSheetUrl || '').trim().slice(0, 600);
+  }
+  if (settings.lastSyncAt !== undefined && settings.lastSyncAt !== null) {
+    sanitized.lastSyncAt = String(settings.lastSyncAt).trim().slice(0, 64);
+  }
+
+  return sanitized;
+}
+
+export const GOOGLE_SHEET_22_HEADERS = [
+  'Timestamp',
+  'Team ID',
+  'Team Name',
+  'Batch',
+  'Department',
+  'Payment Method',
+  'Sender Number',
+  'Trx ID',
+  'Amount (BDT)',
+  'Payment Status',
+  'Speaker 1 (Leader)',
+  'Speaker 1 ID',
+  'Speaker 1 Batch',
+  'Speaker 1 Phone',
+  'Speaker 2',
+  'Speaker 2 ID',
+  'Speaker 2 Batch',
+  'Speaker 2 Phone',
+  'Speaker 3',
+  'Speaker 3 ID',
+  'Speaker 3 Batch',
+  'Speaker 3 Phone',
+] as const;
+
+export function formatTeamForGoogleSheet(team: Team) {
+  const m1 = team.members?.find((m) => m.speakerRole === 1) || team.members?.[0];
+  const m2 = team.members?.find((m) => m.speakerRole === 2) || team.members?.[1];
+  const m3 = team.members?.find((m) => m.speakerRole === 3) || team.members?.[2];
+
+  return {
+    timestamp: team.registrationDate || new Date().toISOString(),
+    teamId: team.id,
+    teamName: team.name,
+    batch: team.batch,
+    department: team.department || 'Department of CSE, Varendra University, Rajshahi',
+    paymentMethod: team.payment?.method || 'bKash',
+    senderNumber: team.payment?.senderNumber || '',
+    transactionId: team.payment?.transactionId || '',
+    amount: team.payment?.amount || 350,
+    paymentStatus: team.payment?.status || 'PENDING',
+    speaker1Name: m1?.fullName || '',
+    speaker1Id: m1?.studentId || '',
+    speaker1Batch: m1?.batch || team.batch || '',
+    speaker1Phone: m1?.phone || '',
+    speaker2Name: m2?.fullName || '',
+    speaker2Id: m2?.studentId || '',
+    speaker2Batch: m2?.batch || team.batch || '',
+    speaker2Phone: m2?.phone || '',
+    speaker3Name: m3?.fullName || '',
+    speaker3Id: m3?.studentId || '',
+    speaker3Batch: m3?.batch || team.batch || '',
+    speaker3Phone: m3?.phone || '',
+  };
+}
+
+export function formatTeamAs22ColumnArray(team: Team): (string | number)[] {
+  const f = formatTeamForGoogleSheet(team);
+  return [
+    f.timestamp,
+    f.teamId,
+    f.teamName,
+    f.batch,
+    f.department,
+    f.paymentMethod,
+    f.senderNumber,
+    f.transactionId,
+    f.amount,
+    f.paymentStatus,
+    f.speaker1Name,
+    f.speaker1Id,
+    f.speaker1Batch,
+    f.speaker1Phone,
+    f.speaker2Name,
+    f.speaker2Id,
+    f.speaker2Batch,
+    f.speaker2Phone,
+    f.speaker3Name,
+    f.speaker3Id,
+    f.speaker3Batch,
+    f.speaker3Phone,
+  ];
+}
+
+export async function dispatchToGoogleSheetWebhook(
+  webhookUrl: string,
+  payload: Record<string, any>
+): Promise<boolean> {
+  const cleanUrl = (webhookUrl || '').trim();
+  if (!cleanUrl || !cleanUrl.startsWith('http')) return false;
+
+  try {
+    await fetch(cleanUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+    });
+    return true;
+  } catch (err) {
+    console.warn('Google Sheet webhook dispatch error:', err);
+    return false;
+  }
+}
+
 export {
   doc,
+  getDoc,
   getDocFromServer,
   getDocsFromServer,
   getDocs,
@@ -299,3 +437,4 @@ export {
   onSnapshot,
   writeBatch,
 };
+

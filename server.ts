@@ -437,14 +437,14 @@ app.get('/api/export/teams.csv', async (req, res) => {
     });
 
     const headers = [
+      'Timestamp',
       'Team ID',
       'Team Name',
       'Batch',
       'Department',
-      'Registration Date',
       'Payment Method',
       'Sender Number',
-      'Transaction ID',
+      'Trx ID',
       'Amount (BDT)',
       'Payment Status',
       'Speaker 1 (Leader)',
@@ -471,11 +471,11 @@ app.get('/api/export/teams.csv', async (req, res) => {
       const members = allMembers.filter(m => m.teamId === t.id).sort((a, b) => a.speakerRole - b.speakerRole);
       const payment = allPayments.find(p => p.teamId === t.id);
       return [
+        escapeCsv(t.registrationDate ? t.registrationDate.toISOString() : ''),
         escapeCsv(t.id),
         escapeCsv(t.name),
         escapeCsv(t.batch),
-        escapeCsv(t.department),
-        escapeCsv(t.registrationDate ? t.registrationDate.toISOString() : ''),
+        escapeCsv(t.department || 'Department of CSE, Varendra University, Rajshahi'),
         escapeCsv(payment?.method || 'bKash'),
         escapeCsv(payment?.senderNumber || ''),
         escapeCsv(payment?.transactionId || ''),

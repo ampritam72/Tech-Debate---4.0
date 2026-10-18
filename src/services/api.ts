@@ -1,5 +1,15 @@
 import { Team, MatchFixture, HallOfFameEdition, Notice } from '../types';
 import { StorageService } from './storage';
+import {
+  db,
+  doc,
+  getDoc,
+  setDoc,
+  sanitizeGoogleSheetSettingsForFirestore,
+  formatTeamForGoogleSheet,
+  dispatchToGoogleSheetWebhook,
+  GoogleSheetCloudSettings,
+} from '../lib/firebase';
 
 const apiCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL_MS = 2000; // 2 seconds in-memory cache for rapid deduplication
@@ -164,47 +174,60 @@ export const ApiService = {
   },
 
   /**
-   * Client-side Google Sheet webhook sync for Vercel hybrid fallback mode.
+   * Cloud-backed Google Sheet webhook sync for both new registrations and status updates.
+   * Reads the active webhook URL from Cloud Firestore (settings/google_sheet) so any student
+   * registering from any device automatically appends/updates their row in the live Google Sheet.
    */
-  syncTeamToGoogleSheetClient: async (team: Team): Promise<void> => {
-    const webhookUrl = StorageService.getGoogleSheetWebhook();
-    if (!webhookUrl || !webhookUrl.startsWith('http')) return;
-
-    const row = {
-      teamId: team.id,
-      teamName: team.name,
-      batch: team.batch,
-      department: team.department,
-      status: team.status,
-      registrationDate: team.registrationDate,
-      paymentMethod: team.payment.method,
-      senderPhone: team.payment.senderNumber,
-      transactionId: team.payment.transactionId,
-      amount: team.payment.amount || 350,
-      speaker1Name: team.members[0]?.fullName || '',
-      speaker1Id: team.members[0]?.studentId || '',
-      speaker1Batch: team.members[0]?.batch || team.batch,
-      speaker1Phone: team.members[0]?.phone || '',
-      speaker2Name: team.members[1]?.fullName || '',
-      speaker2Id: team.members[1]?.studentId || '',
-      speaker2Batch: team.members[1]?.batch || team.batch,
-      speaker2Phone: team.members[1]?.phone || '',
-      speaker3Name: team.members[2]?.fullName || '',
-      speaker3Id: team.members[2]?.studentId || '',
-      speaker3Batch: team.members[2]?.batch || team.batch,
-      speaker3Phone: team.members[2]?.phone || '',
-    };
+  syncTeamToGoogleSheetClient: async (
+    team: Team,
+    action: 'new_registration' | 'update_team' = 'new_registration'
+  ): Promise<boolean> => {
+    let webhookUrl = StorageService.getGoogleSheetWebhook();
+    let autoSync = true;
+    let directSheetUrl = '';
 
     try {
-      await fetch(webhookUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'new_registration', team: row }),
-      });
+      const snap = await getDoc(doc(db, 'settings', 'google_sheet'));
+      if (snap.exists()) {
+        const data = snap.data() as GoogleSheetCloudSettings;
+        if (data.webhookUrl) {
+          webhookUrl = data.webhookUrl;
+          StorageService.saveGoogleSheetWebhook(webhookUrl);
+        }
+        if (data.autoSync !== undefined) {
+          autoSync = Boolean(data.autoSync);
+        }
+        if (data.directSheetUrl) {
+          directSheetUrl = data.directSheetUrl;
+        }
+      }
     } catch (err) {
-      console.warn('Client-side Google Sheet webhook sync warning:', err);
+      console.warn('Could not read settings/google_sheet from Firestore, using local webhook cache:', err);
     }
+
+    if (!autoSync || !webhookUrl || !webhookUrl.startsWith('http')) return false;
+
+    const row = formatTeamForGoogleSheet(team);
+    const ok = await dispatchToGoogleSheetWebhook(webhookUrl, {
+      action,
+      team: row,
+    });
+
+    if (ok) {
+      const nowIso = new Date().toISOString();
+      setDoc(
+        doc(db, 'settings', 'google_sheet'),
+        sanitizeGoogleSheetSettingsForFirestore({
+          webhookUrl,
+          directSheetUrl,
+          autoSync,
+          lastSyncAt: nowIso,
+          lastStatus: 'SUCCESS',
+        })
+      ).catch(() => {});
+    }
+
+    return ok;
   },
 
   updatePaymentStatus: async (teamId: string, status: string, rejectionReason?: string): Promise<any> => {
@@ -247,38 +270,77 @@ export const ApiService = {
     return data || { success: true };
   },
 
-  // Google Sheet Backup & Sync
+  // Google Sheet Backup & Sync (Cloud Firestore + Server Hybrid)
   getGoogleSheetSettings: async (): Promise<{
     webhookUrl: string;
+    directSheetUrl?: string;
     autoSync: boolean;
     lastSyncAt: string | null;
     lastStatus: string;
     liveCsvUrl: string;
     googleSheetFormula: string;
   }> => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    let firestoreSettings: GoogleSheetCloudSettings | null = null;
+
+    try {
+      const snap = await getDoc(doc(db, 'settings', 'google_sheet'));
+      if (snap.exists()) {
+        firestoreSettings = snap.data() as GoogleSheetCloudSettings;
+        if (firestoreSettings.webhookUrl) {
+          StorageService.saveGoogleSheetWebhook(firestoreSettings.webhookUrl);
+        }
+      }
+    } catch {}
+
     try {
       const { res, isJson, data } = await apiFetch<any>('/api/admin/google-sheet');
       if (res.ok && isJson && data) {
-        if (data.webhookUrl) {
-          StorageService.saveGoogleSheetWebhook(data.webhookUrl);
+        const mergedWebhook = firestoreSettings?.webhookUrl || data.webhookUrl || StorageService.getGoogleSheetWebhook();
+        if (mergedWebhook) {
+          StorageService.saveGoogleSheetWebhook(mergedWebhook);
         }
-        return data;
+        return {
+          webhookUrl: mergedWebhook,
+          directSheetUrl: firestoreSettings?.directSheetUrl || '',
+          autoSync: firestoreSettings?.autoSync !== undefined ? firestoreSettings.autoSync : (data.autoSync ?? true),
+          lastSyncAt: firestoreSettings?.lastSyncAt || data.lastSyncAt || null,
+          lastStatus: firestoreSettings?.lastStatus || data.lastStatus || (mergedWebhook ? 'ACTIVE' : 'NOT_CONFIGURED'),
+          liveCsvUrl: data.liveCsvUrl || `${origin}/api/export/teams.csv`,
+          googleSheetFormula: data.googleSheetFormula || `=IMPORTDATA("${origin}/api/export/teams.csv")`,
+        };
       }
     } catch {}
-    const localWebhook = StorageService.getGoogleSheetWebhook();
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+
+    const resolvedWebhook = firestoreSettings?.webhookUrl || StorageService.getGoogleSheetWebhook();
     return {
-      webhookUrl: localWebhook,
-      autoSync: true,
-      lastSyncAt: null,
-      lastStatus: localWebhook ? 'LOCAL_HYBRID_READY' : 'NOT_CONFIGURED',
+      webhookUrl: resolvedWebhook,
+      directSheetUrl: firestoreSettings?.directSheetUrl || '',
+      autoSync: firestoreSettings?.autoSync !== undefined ? firestoreSettings.autoSync : true,
+      lastSyncAt: firestoreSettings?.lastSyncAt || null,
+      lastStatus: firestoreSettings?.lastStatus || (resolvedWebhook ? 'ACTIVE' : 'NOT_CONFIGURED'),
       liveCsvUrl: `${origin}/api/export/teams.csv`,
       googleSheetFormula: `=IMPORTDATA("${origin}/api/export/teams.csv")`,
     };
   },
 
-  saveGoogleSheetSettings: async (settings: { webhookUrl: string; autoSync?: boolean }): Promise<any> => {
-    StorageService.saveGoogleSheetWebhook(settings.webhookUrl || '');
+  saveGoogleSheetSettings: async (settings: {
+    webhookUrl: string;
+    directSheetUrl?: string;
+    autoSync?: boolean;
+  }): Promise<any> => {
+    const cleanWebhook = (settings.webhookUrl || '').trim();
+    StorageService.saveGoogleSheetWebhook(cleanWebhook);
+
+    const sanitized = sanitizeGoogleSheetSettingsForFirestore({
+      webhookUrl: cleanWebhook,
+      directSheetUrl: settings.directSheetUrl,
+      autoSync: settings.autoSync ?? true,
+      lastStatus: cleanWebhook ? 'ACTIVE' : 'NOT_CONFIGURED',
+    });
+
+    await setDoc(doc(db, 'settings', 'google_sheet'), sanitized);
+
     try {
       const { res, isJson, data } = await apiFetch('/api/admin/google-sheet', {
         method: 'POST',
@@ -287,15 +349,58 @@ export const ApiService = {
       });
       if (res.ok && isJson) return data;
     } catch {}
-    return { success: true, webhookUrl: settings.webhookUrl };
+
+    return { success: true, webhookUrl: cleanWebhook };
   },
 
-  syncAllToGoogleSheet: async (): Promise<{ success: boolean; count: number; message: string }> => {
+  syncAllToGoogleSheet: async (teamsList?: Team[]): Promise<{ success: boolean; count: number; message: string }> => {
+    let webhookUrl = StorageService.getGoogleSheetWebhook();
+    let directSheetUrl = '';
+    let autoSync = true;
+
+    try {
+      const snap = await getDoc(doc(db, 'settings', 'google_sheet'));
+      if (snap.exists()) {
+        const data = snap.data() as GoogleSheetCloudSettings;
+        if (data.webhookUrl) webhookUrl = data.webhookUrl;
+        if (data.directSheetUrl) directSheetUrl = data.directSheetUrl;
+        if (data.autoSync !== undefined) autoSync = Boolean(data.autoSync);
+      }
+    } catch {}
+
+    if (teamsList && webhookUrl && webhookUrl.startsWith('http')) {
+      const formattedRows = teamsList.map(formatTeamForGoogleSheet);
+      const ok = await dispatchToGoogleSheetWebhook(webhookUrl, {
+        action: 'bulk_sync',
+        teams: formattedRows,
+      });
+
+      if (ok) {
+        const nowIso = new Date().toISOString();
+        await setDoc(
+          doc(db, 'settings', 'google_sheet'),
+          sanitizeGoogleSheetSettingsForFirestore({
+            webhookUrl,
+            directSheetUrl,
+            autoSync,
+            lastSyncAt: nowIso,
+            lastStatus: 'SUCCESS',
+          })
+        ).catch(() => {});
+
+        return {
+          success: true,
+          count: formattedRows.length,
+          message: `Successfully synced ${formattedRows.length} squads to your Google Sheet!`,
+        };
+      }
+    }
+
     const { res, isJson, data } = await apiFetch<any>('/api/admin/google-sheet/sync', {
       method: 'POST',
     });
     if (!isJson || !data) {
-      throw new Error('Server sync endpoint unavailable in static mode');
+      throw new Error('Please configure a valid Google Apps Script Web App URL first.');
     }
     if (!res.ok) throw new Error(data.error || 'Failed to sync with Google Sheet');
     return data;

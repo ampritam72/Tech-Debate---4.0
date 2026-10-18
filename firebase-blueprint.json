@@ -341,6 +341,42 @@
         }
       },
       "required": ["id", "title", "date", "timeRange", "venue", "description", "isCompleted", "isActive"]
+    },
+    "GoogleSheetSetting": {
+      "title": "GoogleSheetSetting",
+      "description": "Cloud-synced Google Sheet auto-backup webhook and configuration",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "webhookUrl": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "directSheetUrl": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "autoSync": {
+          "type": "boolean"
+        },
+        "lastSyncAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "lastStatus": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "updatedAt": {
+          "type": "string",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "webhookUrl", "autoSync", "lastStatus"]
     }
   },
   "firestore": {
@@ -367,6 +403,11 @@
     "/schedule/{scheduleId}": {
       "schema": { "$ref": "#/entities/ScheduleItem" },
       "description": "Tournament timeline schedule items"
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/GoogleSheetSetting" },
+      "description": "Cloud-synced Google Sheet auto-backup webhook configuration"
     }
   }
 }
+

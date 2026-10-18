@@ -479,6 +479,21 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
     );
 
+    const settingsUnsub = onSnapshot(
+      doc(db, 'settings', 'google_sheet'),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data && typeof data.webhookUrl === 'string') {
+            StorageService.saveGoogleSheetWebhook(data.webhookUrl);
+          }
+        }
+      },
+      (err) => {
+        console.warn('Firestore settings listener warning:', err);
+      }
+    );
+
     return () => {
       teamsUnsub();
       fixturesUnsub();
@@ -486,6 +501,7 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       inquiriesUnsub();
       hofUnsub();
       scheduleUnsub();
+      settingsUnsub();
     };
   }, []);
 
@@ -734,6 +750,7 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         console.error('Failed to update payment status in Cloud Firestore:', err);
         handleFirestoreError(err, OperationType.UPDATE, `teams/${teamId}`);
       }
+      ApiService.syncTeamToGoogleSheetClient(updatedTeamObj, 'update_team').catch(() => {});
     }
 
     ApiService.updatePaymentStatus(teamId, status, rejectionReason).catch(() => {});
@@ -768,6 +785,7 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         console.error('Failed to update team status in Cloud Firestore:', err);
         handleFirestoreError(err, OperationType.UPDATE, `teams/${teamId}`);
       }
+      ApiService.syncTeamToGoogleSheetClient(updatedTeamObj, 'update_team').catch(() => {});
     }
 
     ApiService.updateTeamStatus(teamId, status, notes).catch(() => {});
