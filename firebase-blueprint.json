@@ -1,0 +1,372 @@
+{
+  "entities": {
+    "Team": {
+      "title": "Team",
+      "description": "A registered debate squad for Department of CSE, Varendra University, Rajshahi Intra-Departmental Tech Debate 4.0",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique sequential squad ID (e.g., TD4-TEAM-101)",
+          "minLength": 3,
+          "maxLength": 64,
+          "pattern": "^TD4-TEAM-[0-9]+$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Squad display name",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "batch": {
+          "type": "string",
+          "description": "Academic batch representation",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "department": {
+          "type": "string",
+          "description": "Academic department name",
+          "minLength": 1,
+          "maxLength": 150
+        },
+        "leaderId": {
+          "type": "string",
+          "description": "Team leader member ID",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "registrationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO timestamp when registration was submitted",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "status": {
+          "type": "string",
+          "description": "Current verification and tournament status of the team",
+          "enum": [
+            "PENDING",
+            "VERIFIED",
+            "REJECTED",
+            "DISQUALIFIED",
+            "ELIMINATED",
+            "CHAMPION",
+            "RUNNER_UP"
+          ]
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional administrative notes",
+          "maxLength": 500
+        },
+        "members": {
+          "type": "array",
+          "description": "List of 3 squad speakers with student ID, batch, semester, and phone"
+        },
+        "payment": {
+          "type": "object",
+          "description": "MFS payment verification record (bKash, Nagad, Rocket)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "batch",
+        "department",
+        "leaderId",
+        "registrationDate",
+        "status",
+        "members",
+        "payment"
+      ]
+    },
+    "MatchFixture": {
+      "title": "MatchFixture",
+      "description": "Debate match fixture and result record",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique fixture ID",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "matchNumber": {
+          "type": "number",
+          "description": "Match sequence number"
+        },
+        "roundKey": {
+          "type": "string",
+          "description": "Tournament round key",
+          "maxLength": 16
+        },
+        "roundName": {
+          "type": "string",
+          "description": "Tournament round name",
+          "maxLength": 64
+        },
+        "govTeam": {
+          "type": "string",
+          "description": "Government team name",
+          "maxLength": 120
+        },
+        "govShort": {
+          "type": "string",
+          "description": "Government short code",
+          "maxLength": 32
+        },
+        "oppTeam": {
+          "type": "string",
+          "description": "Opposition team name",
+          "maxLength": 120
+        },
+        "oppShort": {
+          "type": "string",
+          "description": "Opposition short code",
+          "maxLength": 32
+        },
+        "venue": {
+          "type": "string",
+          "description": "Debate hall or room",
+          "maxLength": 120
+        },
+        "datetime": {
+          "type": "string",
+          "description": "Scheduled date/time string",
+          "maxLength": 100
+        },
+        "status": {
+          "type": "string",
+          "description": "Match lifecycle status",
+          "enum": ["Upcoming", "Live", "Completed", "Cancelled"]
+        }
+      },
+      "required": [
+        "id",
+        "matchNumber",
+        "roundKey",
+        "roundName",
+        "govTeam",
+        "govShort",
+        "oppTeam",
+        "oppShort",
+        "venue",
+        "datetime",
+        "status"
+      ]
+    },
+    "Notice": {
+      "title": "Notice",
+      "description": "Official tournament notice or announcement",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique notice ID",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "title": {
+          "type": "string",
+          "description": "Announcement headline",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "category": {
+          "type": "string",
+          "description": "Announcement category",
+          "maxLength": 64
+        },
+        "publishedAt": {
+          "type": "string",
+          "description": "ISO publication timestamp",
+          "maxLength": 64
+        },
+        "content": {
+          "type": "string",
+          "description": "Full announcement body",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "isPinned": {
+          "type": "boolean",
+          "description": "Whether the notice is pinned"
+        }
+      },
+      "required": ["id", "title", "category", "publishedAt", "content"]
+    },
+    "ContactInquiry": {
+      "title": "ContactInquiry",
+      "description": "Helpdesk or MFS verification inquiry ticket submitted via Contact Page",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique ticket ID",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "name": {
+          "type": "string",
+          "description": "Sender full name",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "phone": {
+          "type": "string",
+          "description": "Sender mobile phone number",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "studentId": {
+          "type": "string",
+          "description": "Optional Student ID",
+          "maxLength": 64
+        },
+        "subject": {
+          "type": "string",
+          "description": "Inquiry category",
+          "minLength": 1,
+          "maxLength": 150
+        },
+        "message": {
+          "type": "string",
+          "description": "Detailed inquiry message",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp when inquiry was submitted",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "status": {
+          "type": "string",
+          "description": "Ticket resolution status",
+          "enum": ["NEW", "RESOLVED"]
+        }
+      },
+      "required": ["id", "name", "phone", "studentId", "subject", "message", "createdAt", "status"]
+    },
+    "HallOfFameEdition": {
+      "title": "HallOfFameEdition",
+      "description": "Hall of Fame championship edition record",
+      "type": "object",
+      "properties": {
+        "edition": {
+          "type": "string",
+          "description": "Edition number (e.g. 4.0)",
+          "minLength": 1,
+          "maxLength": 16
+        },
+        "year": {
+          "type": "number",
+          "description": "Tournament year"
+        },
+        "theme": {
+          "type": "string",
+          "description": "Edition theme",
+          "maxLength": 300
+        },
+        "status": {
+          "type": "string",
+          "enum": ["COMPLETED", "IN_PROGRESS"]
+        },
+        "champion": {
+          "type": "object",
+          "description": "Champion team details"
+        },
+        "runnerUp": {
+          "type": "object",
+          "description": "Runner-up team details"
+        },
+        "bestTournamentDebater": {
+          "type": "object",
+          "description": "Best tournament debater details"
+        },
+        "finalMatchBestDebater": {
+          "type": "object",
+          "description": "Final match best debater details"
+        },
+        "committee": {
+          "type": "array",
+          "description": "Organizing committee list"
+        }
+      },
+      "required": ["edition", "year", "theme", "status", "champion", "runnerUp", "bestTournamentDebater", "finalMatchBestDebater", "committee"]
+    },
+    "ScheduleItem": {
+      "title": "ScheduleItem",
+      "description": "Tournament timeline milestone",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 150
+        },
+        "date": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "timeRange": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "venue": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "isCompleted": {
+          "type": "boolean"
+        },
+        "isActive": {
+          "type": "boolean"
+        }
+      },
+      "required": ["id", "title", "date", "timeRange", "venue", "description", "isCompleted", "isActive"]
+    }
+  },
+  "firestore": {
+    "/teams/{teamId}": {
+      "schema": { "$ref": "#/entities/Team" },
+      "description": "Registered debate squads synced in real time across Vercel and Admin Console"
+    },
+    "/fixtures/{fixtureId}": {
+      "schema": { "$ref": "#/entities/MatchFixture" },
+      "description": "Tournament match brackets and live scores"
+    },
+    "/notices/{noticeId}": {
+      "schema": { "$ref": "#/entities/Notice" },
+      "description": "Official tournament announcements"
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": { "$ref": "#/entities/ContactInquiry" },
+      "description": "Student helpdesk & MFS verification tickets"
+    },
+    "/hallOfFame/{editionId}": {
+      "schema": { "$ref": "#/entities/HallOfFameEdition" },
+      "description": "Hall of Fame championship records"
+    },
+    "/schedule/{scheduleId}": {
+      "schema": { "$ref": "#/entities/ScheduleItem" },
+      "description": "Tournament timeline schedule items"
+    }
+  }
+}

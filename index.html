@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (function() {
+        try {
+          var target = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : null);
+          if (target && target.fetch) {
+            var nativeFetch = target.fetch.bind(target);
+            var activeFetch = nativeFetch;
+            var descriptor = {
+              get: function() {
+                return activeFetch;
+              },
+              set: function(val) {
+                activeFetch = typeof val === 'function' ? val : nativeFetch;
+              },
+              configurable: true,
+              enumerable: true
+            };
+            try { Object.defineProperty(target, 'fetch', descriptor); } catch (e) {}
+            if (target.Window && target.Window.prototype) {
+              try { Object.defineProperty(target.Window.prototype, 'fetch', descriptor); } catch (e) {}
+            }
+          }
+        } catch (e) {
+          // silently handle
+        }
+      })();
+    </script>
+    <meta name="theme-color" content="#050814" />
+    <title>Tech Debate 4.0 | Intra-CSE Parliamentary Debate Championship 2026</title>
+    <meta name="description" content="Official digital platform for Tech Debate 4.0 — Intra-CSE Parliamentary Debate Championship 2026, Department of CSE, Varendra University. Defend your stance with logic." />
+    
+    <!-- OpenGraph Social Sharing -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Tech Debate 4.0" />
+    <meta property="og:title" content="Tech Debate 4.0 | Intra-CSE Parliamentary Debate Championship 2026" />
+    <meta property="og:description" content="Official digital platform for Tech Debate 4.0 — Intra-CSE Parliamentary Debate Championship 2026, Department of CSE, Varendra University. Defend your stance with logic." />
+    <meta property="og:image" content="/herobanner.png" />
+
+    <!-- Twitter / X Social Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Tech Debate 4.0 | Intra-CSE Parliamentary Debate Championship 2026" />
+    <meta name="twitter:description" content="Official digital platform for Tech Debate 4.0 — Intra-CSE Parliamentary Debate Championship 2026, Department of CSE, Varendra University. Defend your stance with logic." />
+    <meta name="twitter:image" content="/herobanner.png" />
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Event",
+      "name": "Tech Debate 4.0 | Intra-CSE Parliamentary Debate Championship 2026",
+      "description": "Official digital platform for Tech Debate 4.0 — Intra-CSE Parliamentary Debate Championship 2026, Department of CSE, Varendra University.",
+      "eventStatus": "https://schema.org/EventScheduled",
+      "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+      "organizer": {
+        "@type": "Organization",
+        "name": "Department of Computer Science & Engineering, Varendra University"
+      }
+    }
+    </script>
+
+    <link rel="icon" type="image/png" href="/Logo.png" />
+    <link rel="apple-touch-icon" href="/Logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,400;1,600&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-[#050814] text-slate-100 antialiased selection:bg-cyan-500/20 selection:text-cyan-300">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

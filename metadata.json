@@ -1,0 +1,6 @@
+{
+  "name": "Tech Debate 4.0",
+  "description": "Official digital platform for Tech Debate 4.0 — Intra-CSE Parliamentary Debate Championship 2026 at Varendra University. Manage registrations, brackets, results, and archives.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

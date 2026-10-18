@@ -1,0 +1,533 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant light (&:where(.light, .light *));
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-display: 'Space Grotesk', system-ui, sans-serif;
+    --font-serif: 'Playfair Display', Georgia, serif;
+    --font-brand: 'Cinzel', serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* Tech Debate 4.0 Logo Deep Cobalt Theme */
+    --bg-page: #041535;
+    --text-primary: #f8fafc;
+    --text-secondary: #bae6fd;
+    --card-bg: rgba(2, 28, 76, 0.92);
+    --card-border: rgba(0, 180, 255, 0.42);
+    --nav-bg: rgba(3, 22, 62, 0.92);
+  }
+
+  .dark {
+    /* Dark mode preset variables */
+    --bg-page: #030f28;
+    --text-primary: #ffffff;
+    --text-secondary: #e0f2fe;
+    --card-bg: rgba(2, 24, 68, 0.94);
+    --card-border: rgba(0, 200, 255, 0.48);
+    --nav-bg: rgba(2, 18, 52, 0.94);
+  }
+
+  html {
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    overflow-x: hidden;
+    width: 100%;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  * {
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+
+  p, span, h1, h2, h3, h4, h5, h6, a, label, div, button {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
+  .font-serif {
+    font-family: var(--font-serif);
+  }
+
+  .font-brand {
+    font-family: var(--font-brand);
+  }
+
+  code, pre, .font-mono {
+    font-family: var(--font-mono);
+  }
+}
+
+/* Printable Voucher CSS for window.print() */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  .printable-voucher, .printable-voucher * {
+    visibility: visible !important;
+  }
+  .printable-voucher {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 24px !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    border: 2px solid #0284c7 !important;
+    border-radius: 16px !important;
+  }
+  .printable-voucher * {
+    color: #0f172a !important;
+    background: transparent !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Custom cyber scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #0ea5e9;
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+.light ::-webkit-scrollbar-thumb:hover {
+  background: #0284c7;
+}
+
+/* Subtle cyber-grid pattern */
+.cyber-grid {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+}
+
+.dark .cyber-grid {
+  background-image: 
+    linear-gradient(to right, rgba(0, 229, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 229, 255, 0.04) 1px, transparent 1px);
+}
+
+/* ==========================================================================
+   CLAYMORPHISM DESIGN SYSTEM (Tactile 3D inflated surfaces & dual shadows)
+   ========================================================================== */
+
+/* 1. Claymorphic Cards & Containers - Tech Debate Logo Cobalt/Electric Blue */
+.clay-card,
+.glass-panel,
+.cyber-card-glow {
+  background: linear-gradient(135deg, rgba(3, 32, 82, 0.94) 0%, rgba(2, 22, 62, 0.97) 60%, rgba(1, 14, 44, 0.99) 100%);
+  border: 1px solid rgba(0, 180, 255, 0.42);
+  border-radius: 1.5rem;
+  box-shadow: 
+    0 20px 42px -8px rgba(0, 18, 55, 0.65),
+    0 8px 18px -4px rgba(0, 8, 30, 0.5),
+    inset 2.5px 2.5px 6px 0 rgba(0, 210, 255, 0.32),
+    inset -3px -4px 8px 0 rgba(0, 10, 32, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.light .clay-card,
+.light .glass-panel,
+.light .cyber-card-glow {
+  background: linear-gradient(135deg, #ffffff 0%, #edf5ff 60%, #dbeafe 100%);
+  border: 1px solid rgba(0, 140, 255, 0.35);
+  box-shadow: 
+    0 18px 36px -6px rgba(0, 70, 180, 0.16),
+    0 6px 14px -2px rgba(0, 40, 120, 0.08),
+    inset 3px 3px 6px 0 rgba(255, 255, 255, 1),
+    inset -3px -4px 8px 0 rgba(147, 197, 253, 0.45);
+}
+
+.clay-card:hover,
+.glass-panel:hover,
+.cyber-card-glow:hover {
+  transform: translateY(-3px);
+  border-color: rgba(0, 210, 255, 0.7);
+  box-shadow: 
+    0 26px 48px -8px rgba(0, 20, 65, 0.75),
+    0 0 28px 2px rgba(0, 160, 255, 0.35),
+    inset 2.5px 2.5px 6px 0 rgba(0, 230, 253, 0.45),
+    inset -3px -4px 8px 0 rgba(0, 10, 32, 0.65);
+}
+
+.light .clay-card:hover,
+.light .glass-panel:hover,
+.light .cyber-card-glow:hover {
+  transform: translateY(-3px);
+  border-color: rgba(0, 122, 255, 0.6);
+  box-shadow: 
+    0 22px 42px -6px rgba(0, 102, 255, 0.24),
+    0 0 20px 1px rgba(0, 160, 255, 0.2),
+    inset 3px 3px 6px 0 rgba(255, 255, 255, 1),
+    inset -3px -4px 8px 0 rgba(147, 197, 253, 0.5);
+}
+
+/* 2. Clay Card Glow (Accentuated 3D Clay with logo electric blue aura) */
+.clay-card-glow {
+  background: linear-gradient(135deg, rgba(0, 48, 128, 0.96) 0%, rgba(0, 30, 88, 0.98) 60%, rgba(0, 16, 56, 1) 100%);
+  border: 1px solid rgba(0, 200, 255, 0.65);
+  box-shadow: 
+    0 22px 45px -6px rgba(0, 15, 50, 0.7),
+    0 0 32px 3px rgba(0, 140, 255, 0.4),
+    inset 3px 3px 7px 0 rgba(255, 255, 255, 0.4),
+    inset 1px 1px 3px 0 rgba(0, 220, 255, 0.6),
+    inset -3px -4px 9px 0 rgba(0, 10, 30, 0.7);
+}
+
+.clay-card-glow:hover {
+  transform: translateY(-4px);
+  border-color: rgba(0, 230, 255, 0.9);
+  box-shadow: 
+    0 28px 56px -6px rgba(0, 15, 50, 0.8),
+    0 0 42px 6px rgba(0, 160, 255, 0.5),
+    inset 3px 3px 8px 0 rgba(255, 255, 255, 0.45),
+    inset -3px -4px 9px 0 rgba(0, 10, 30, 0.75);
+}
+
+/* 3. Clay Panels & Large Structural Containers */
+.clay-panel {
+  background: linear-gradient(145deg, rgba(2, 28, 76, 0.96) 0%, rgba(1, 18, 52, 0.98) 100%);
+  border: 1px solid rgba(0, 180, 255, 0.38);
+  border-radius: 1.75rem;
+  box-shadow: 
+    0 24px 50px -10px rgba(0, 12, 40, 0.7),
+    0 8px 20px -4px rgba(0, 6, 20, 0.5),
+    inset 3px 3px 8px 0 rgba(0, 210, 255, 0.25),
+    inset -4px -6px 12px 0 rgba(0, 8, 28, 0.65);
+}
+
+.light .clay-panel {
+  background: linear-gradient(145deg, #ffffff 0%, #edf5ff 100%);
+  border: 1px solid rgba(147, 197, 253, 0.85);
+  box-shadow: 
+    0 20px 40px -8px rgba(0, 70, 180, 0.14),
+    inset 4px 4px 8px 0 rgba(255, 255, 255, 1),
+    inset -4px -5px 10px 0 rgba(147, 197, 253, 0.35);
+}
+
+/* 4. Clay Primary Buttons - Metallic Logo Electric Blue */
+.clay-btn,
+.clay-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  border-radius: 1rem;
+  padding: 0.625rem 1.25rem;
+  background: linear-gradient(135deg, #00d2ff 0%, #0077ff 50%, #0044cc 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 
+    0 12px 24px -4px rgba(0, 120, 255, 0.5),
+    0 4px 8px -2px rgba(0, 20, 60, 0.4),
+    inset 2px 2px 4px 0 rgba(255, 255, 255, 0.75),
+    inset -2px -3px 5px 0 rgba(0, 30, 90, 0.5);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-shadow: 0 1px 2px rgba(0, 20, 60, 0.4);
+}
+
+.clay-btn:hover,
+.clay-btn-primary:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #38bdf8 0%, #0088ff 50%, #0052cc 100%);
+  box-shadow: 
+    0 16px 30px -4px rgba(0, 140, 255, 0.65),
+    0 6px 12px -2px rgba(0, 20, 60, 0.45),
+    inset 2px 2px 5px 0 rgba(255, 255, 255, 0.85),
+    inset -2px -3px 5px 0 rgba(0, 30, 90, 0.5);
+}
+
+.clay-btn:active,
+.clay-btn-primary:active {
+  transform: translateY(2px) scale(0.98);
+  box-shadow: 
+    0 4px 10px -2px rgba(0, 120, 255, 0.4),
+    inset 3px 3px 6px 0 rgba(0, 20, 60, 0.55),
+    inset -1px -1px 3px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* 5. Clay Secondary Buttons - Deep Logo Cobalt */
+.clay-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  border-radius: 1rem;
+  padding: 0.625rem 1.25rem;
+  background: linear-gradient(135deg, #00307a 0%, #001e52 100%);
+  color: #e0f2fe;
+  border: 1px solid rgba(0, 180, 255, 0.45);
+  box-shadow: 
+    0 10px 20px -4px rgba(0, 15, 50, 0.5),
+    0 3px 6px -1px rgba(0, 10, 30, 0.3),
+    inset 2px 2px 4px 0 rgba(0, 210, 255, 0.25),
+    inset -2px -3px 5px 0 rgba(0, 10, 30, 0.6);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.light .clay-btn-secondary {
+  background: linear-gradient(135deg, #ffffff 0%, #dbeafe 100%);
+  color: #0052cc;
+  border: 1px solid rgba(0, 140, 255, 0.55);
+  box-shadow: 
+    0 10px 20px -4px rgba(0, 102, 255, 0.2),
+    0 3px 6px -1px rgba(15, 23, 42, 0.06),
+    inset 2px 2px 4px 0 rgba(255, 255, 255, 1),
+    inset -2px -3px 5px 0 rgba(147, 197, 253, 0.6);
+}
+
+.clay-btn-secondary:hover {
+  transform: translateY(-2px);
+  color: #ffffff;
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: 
+    0 14px 26px -4px rgba(0, 0, 0, 0.55),
+    0 0 16px rgba(34, 211, 238, 0.2),
+    inset 2px 2px 4px 0 rgba(255, 255, 255, 0.28),
+    inset -2px -3px 5px 0 rgba(0, 0, 0, 0.55);
+}
+
+.light .clay-btn-secondary:hover {
+  color: #0369a1;
+  border-color: rgba(14, 165, 233, 0.7);
+  box-shadow: 
+    0 14px 26px -4px rgba(14, 165, 233, 0.25),
+    0 0 16px rgba(2, 132, 199, 0.15),
+    inset 2px 2px 4px 0 rgba(255, 255, 255, 1),
+    inset -2px -3px 5px 0 rgba(186, 230, 253, 0.6);
+}
+
+.clay-btn-secondary:active {
+  transform: translateY(2px) scale(0.98);
+  box-shadow: 
+    0 4px 8px -2px rgba(0, 0, 0, 0.4),
+    inset 3px 3px 6px 0 rgba(0, 0, 0, 0.55),
+    inset -1px -1px 3px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* 6. Clay Badges & Pills (Chunky mini 3D capsules) */
+.clay-badge,
+.clay-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, rgba(0, 48, 120, 0.9) 0%, rgba(0, 28, 76, 0.95) 100%);
+  border: 1px solid rgba(0, 190, 255, 0.45);
+  box-shadow: 
+    0 6px 14px -2px rgba(0, 15, 50, 0.4),
+    inset 1.5px 1.5px 3px 0 rgba(0, 210, 255, 0.35),
+    inset -1.5px -2px 3px 0 rgba(0, 10, 30, 0.5);
+}
+
+.light .clay-badge,
+.light .clay-pill {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #0044cc;
+  border: 1px solid rgba(0, 140, 255, 0.6);
+  box-shadow: 
+    0 6px 14px -2px rgba(0, 102, 255, 0.2),
+    inset 1.5px 1.5px 3px 0 rgba(255, 255, 255, 1),
+    inset -1.5px -2px 3px 0 rgba(147, 197, 253, 0.6);
+}
+
+/* 7. Clay Tabs & Segmented Filters */
+.clay-tab {
+  border-radius: 0.875rem;
+  background: linear-gradient(135deg, #002868 0%, #001844 100%);
+  border: 1px solid rgba(0, 180, 255, 0.35);
+  box-shadow: 
+    0 6px 12px -2px rgba(0, 15, 50, 0.4),
+    inset 1.5px 1.5px 3px 0 rgba(0, 210, 255, 0.25),
+    inset -2px -2px 4px 0 rgba(0, 10, 30, 0.5);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.light .clay-tab {
+  background: linear-gradient(135deg, #ffffff 0%, #edf5ff 100%);
+  color: #003882;
+  border: 1px solid rgba(0, 140, 255, 0.4);
+  box-shadow: 
+    0 6px 12px -2px rgba(0, 70, 180, 0.12),
+    inset 1.5px 1.5px 3px 0 rgba(255, 255, 255, 1),
+    inset -2px -2px 4px 0 rgba(147, 197, 253, 0.4);
+}
+
+.clay-tab:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 210, 255, 0.65);
+  box-shadow: 
+    0 10px 18px -2px rgba(0, 20, 60, 0.5),
+    inset 1.5px 1.5px 3px 0 rgba(0, 230, 253, 0.35),
+    inset -2px -2px 4px 0 rgba(0, 10, 30, 0.55);
+}
+
+.light .clay-tab:hover {
+  border-color: rgba(0, 140, 255, 0.65);
+  box-shadow: 
+    0 10px 18px -2px rgba(0, 102, 255, 0.2),
+    inset 1.5px 1.5px 3px 0 rgba(255, 255, 255, 1),
+    inset -2px -2px 4px 0 rgba(147, 197, 253, 0.6);
+}
+
+.clay-tab-active {
+  background: linear-gradient(135deg, rgba(0, 114, 245, 0.65) 0%, rgba(0, 60, 170, 0.88) 100%);
+  border: 1px solid rgba(0, 220, 255, 0.8);
+  box-shadow: 
+    0 10px 20px -2px rgba(0, 140, 255, 0.4),
+    0 0 16px rgba(0, 180, 255, 0.35),
+    inset 2px 2px 4px 0 rgba(255, 255, 255, 0.45),
+    inset -2px -3px 5px 0 rgba(0, 20, 60, 0.55);
+}
+
+.light .clay-tab-active {
+  background: linear-gradient(135deg, #0077ff 0%, #0052cc 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 
+    0 10px 20px -2px rgba(0, 102, 255, 0.4),
+    inset 2px 2px 4px 0 rgba(255, 255, 255, 0.55),
+    inset -2px -3px 5px 0 rgba(0, 40, 120, 0.5);
+}
+
+/* 8. Clay Inputs (Sculpted well depth) */
+.clay-input {
+  background: linear-gradient(135deg, #07122a 0%, #050d1e 100%);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 0.875rem;
+  box-shadow: 
+    inset 2.5px 3px 6px 0 rgba(0, 0, 0, 0.6),
+    inset -1px -1px 3px 0 rgba(255, 255, 255, 0.1),
+    0 2px 4px 0 rgba(0, 0, 0, 0.25);
+  transition: all 0.2s ease;
+}
+
+.light .clay-input {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  color: #0f172a;
+  border: 1px solid rgba(186, 230, 253, 0.9);
+  box-shadow: 
+    inset 2.5px 3px 6px 0 rgba(148, 163, 184, 0.25),
+    inset -1px -1px 3px 0 rgba(255, 255, 255, 1),
+    0 2px 4px 0 rgba(14, 165, 233, 0.08);
+}
+
+.clay-input:focus {
+  outline: none;
+  border-color: rgba(34, 211, 238, 0.7);
+  box-shadow: 
+    inset 2.5px 3px 6px 0 rgba(0, 0, 0, 0.5),
+    0 0 0 2px rgba(34, 211, 238, 0.3),
+    0 0 16px rgba(6, 182, 212, 0.25);
+}
+
+.light .clay-input:focus {
+  border-color: rgba(14, 165, 233, 0.8);
+  box-shadow: 
+    inset 2.5px 3px 6px 0 rgba(148, 163, 184, 0.2),
+    0 0 0 2px rgba(14, 165, 233, 0.25),
+    0 0 16px rgba(2, 132, 199, 0.15);
+}
+
+/* 9. Clay Match Node (For tournament bracket matches) */
+.clay-match-node {
+  background: linear-gradient(140deg, #0b1a3d 0%, #07122b 100%);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 1rem;
+  box-shadow: 
+    0 10px 20px -4px rgba(0, 0, 0, 0.45),
+    inset 2px 2px 4px 0 rgba(255, 255, 255, 0.18),
+    inset -2px -3px 5px 0 rgba(0, 0, 0, 0.5);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.light .clay-match-node {
+  background: linear-gradient(140deg, #ffffff 0%, #f0f9ff 100%);
+  border: 1px solid rgba(186, 230, 253, 0.9);
+  box-shadow: 
+    0 10px 20px -4px rgba(14, 165, 233, 0.12),
+    inset 2px 2px 4px 0 rgba(255, 255, 255, 1),
+    inset -2px -3px 5px 0 rgba(186, 230, 253, 0.4);
+}
+
+.clay-match-node:hover {
+  transform: translateY(-2px) scale(1.015);
+  border-color: rgba(34, 211, 238, 0.55);
+  box-shadow: 
+    0 14px 26px -4px rgba(0, 0, 0, 0.55),
+    0 0 18px rgba(34, 211, 238, 0.22),
+    inset 2px 2px 4px 0 rgba(255, 255, 255, 0.25),
+    inset -2px -3px 5px 0 rgba(0, 0, 0, 0.55);
+}
+
+/* 10. Subtle float animation */
+@keyframes float-subtle {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+}
+
+.animate-float {
+  animation: float-subtle 4s ease-in-out infinite;
+}
+
+/* Shimmer sweep */
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.animate-shimmer {
+  animation: shimmer-sweep 3s ease-in-out infinite;
+}
+
+/* Motion Primitives Border Beam animation */
+@keyframes border-beam {
+  100% {
+    offset-distance: 100%;
+  }
+}
+
+.animate-border-beam {
+  animation: border-beam var(--duration, 10s) infinite linear;
+}
+

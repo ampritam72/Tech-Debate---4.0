@@ -1,0 +1,177 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\.\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTeam(data) {
+      return data.keys().hasAll(['id', 'name', 'batch', 'department', 'leaderId', 'members', 'registrationDate', 'status', 'payment'])
+        && data.keys().hasOnly(['id', 'name', 'batch', 'department', 'leaderId', 'members', 'registrationDate', 'status', 'payment', 'notes', 'userUid', 'updatedAt'])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 128
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 150
+        && data.batch is string && data.batch.size() >= 1 && data.batch.size() <= 64
+        && data.department is string && data.department.size() >= 1 && data.department.size() <= 150
+        && data.leaderId is string && data.leaderId.size() >= 1 && data.leaderId.size() <= 100
+        && data.registrationDate is string && data.registrationDate.size() >= 1 && data.registrationDate.size() <= 64
+        && data.status in ['PENDING', 'VERIFIED', 'REJECTED', 'DISQUALIFIED', 'ELIMINATED', 'CHAMPION', 'RUNNER_UP']
+        && data.members is list && data.members.size() >= 1 && data.members.size() <= 5 && data.members[0] is map
+        && data.payment is map
+        && data.payment.method in ['bKash', 'Nagad', 'Rocket']
+        && data.payment.senderNumber is string && data.payment.senderNumber.size() >= 1 && data.payment.senderNumber.size() <= 64
+        && data.payment.transactionId is string && data.payment.transactionId.size() >= 1 && data.payment.transactionId.size() <= 100
+        && data.payment.status in ['PENDING', 'VERIFIED', 'REJECTED'];
+    }
+
+    function isValidFixture(data) {
+      return data.keys().hasAll(['id', 'matchNumber', 'roundKey', 'roundName', 'govTeam', 'govShort', 'oppTeam', 'oppShort', 'venue', 'datetime', 'status'])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 64
+        && data.matchNumber is number
+        && data.roundKey is string && data.roundKey.size() <= 16
+        && data.roundName is string && data.roundName.size() <= 64
+        && data.govTeam is string && data.govTeam.size() <= 120
+        && data.govShort is string && data.govShort.size() <= 32
+        && data.oppTeam is string && data.oppTeam.size() <= 120
+        && data.oppShort is string && data.oppShort.size() <= 32
+        && data.venue is string && data.venue.size() <= 120
+        && data.datetime is string && data.datetime.size() <= 100
+        && data.status in ['Upcoming', 'Live', 'Completed', 'Cancelled'];
+    }
+
+    function isValidNotice(data) {
+      return data.keys().hasAll(['id', 'title', 'category', 'publishedAt', 'content'])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 64
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 200
+        && data.category is string && data.category.size() <= 64
+        && data.publishedAt is string && data.publishedAt.size() <= 64
+        && data.content is string && data.content.size() >= 1 && data.content.size() <= 2000;
+    }
+
+    function isValidInquiry(data) {
+      return data.keys().hasAll(['id', 'name', 'phone', 'studentId', 'subject', 'message', 'createdAt', 'status'])
+        && data.keys().hasOnly(['id', 'name', 'phone', 'studentId', 'subject', 'message', 'createdAt', 'status'])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 64
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+        && data.phone is string && data.phone.size() >= 1 && data.phone.size() <= 32
+        && data.studentId is string && data.studentId.size() <= 64
+        && data.subject is string && data.subject.size() >= 1 && data.subject.size() <= 150
+        && data.message is string && data.message.size() >= 1 && data.message.size() <= 2000
+        && data.createdAt is string && data.createdAt.size() >= 1 && data.createdAt.size() <= 64
+        && data.status in ['NEW', 'RESOLVED'];
+    }
+
+    function isValidHallOfFame(data) {
+      return data.keys().hasAll(['edition', 'year', 'theme', 'status', 'champion', 'runnerUp', 'bestTournamentDebater', 'finalMatchBestDebater', 'committee'])
+        && data.edition is string && data.edition.size() >= 1 && data.edition.size() <= 16
+        && data.year is number
+        && data.theme is string && data.theme.size() <= 300
+        && data.status in ['COMPLETED', 'IN_PROGRESS']
+        && data.champion is map
+        && data.runnerUp is map
+        && data.bestTournamentDebater is map
+        && data.finalMatchBestDebater is map
+        && data.committee is list && data.committee.size() <= 20;
+    }
+
+    function isValidSchedule(data) {
+      return data.keys().hasAll(['id', 'title', 'date', 'timeRange', 'venue', 'description', 'isCompleted', 'isActive'])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 64
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 150
+        && data.date is string && data.date.size() >= 1 && data.date.size() <= 64
+        && data.timeRange is string && data.timeRange.size() >= 1 && data.timeRange.size() <= 64
+        && data.venue is string && data.venue.size() >= 1 && data.venue.size() <= 120
+        && data.description is string && data.description.size() >= 1 && data.description.size() <= 500
+        && data.isCompleted is bool
+        && data.isActive is bool;
+    }
+
+    // Boot connectivity check path
+    match /test/{docId} {
+      allow get: if isValidId(docId);
+    }
+
+    // Registered Teams collection (real-time public counter & directory + validated cloud registration)
+    match /teams/{teamId} {
+      allow get: if isValidId(teamId);
+      allow list: if true;
+      allow create: if isValidId(teamId) && isValidTeam(incoming()) && incoming().id == teamId;
+      allow update: if isValidId(teamId) && isValidTeam(incoming()) && incoming().id == existing().id;
+      allow delete: if isValidId(teamId);
+    }
+
+    // Tournament Fixtures collection
+    match /fixtures/{fixtureId} {
+      allow get: if isValidId(fixtureId);
+      allow list: if true;
+      allow create: if isValidId(fixtureId) && isValidFixture(incoming()) && incoming().id == fixtureId;
+      allow update: if isValidId(fixtureId) && isValidFixture(incoming()) && incoming().id == existing().id;
+      allow delete: if isValidId(fixtureId);
+    }
+
+    // Tournament Notices collection
+    match /notices/{noticeId} {
+      allow get: if isValidId(noticeId);
+      allow list: if true;
+      allow create: if isValidId(noticeId) && isValidNotice(incoming()) && incoming().id == noticeId;
+      allow update: if isValidId(noticeId) && isValidNotice(incoming()) && incoming().id == existing().id;
+      allow delete: if isValidId(noticeId);
+    }
+
+    // Helpdesk & Contact Inquiries collection
+    match /inquiries/{inquiryId} {
+      allow get: if isValidId(inquiryId);
+      allow list: if true;
+      allow create: if isValidId(inquiryId) && isValidInquiry(incoming()) && incoming().id == inquiryId;
+      allow update: if isValidId(inquiryId) && isValidInquiry(incoming()) && incoming().id == existing().id;
+      allow delete: if isValidId(inquiryId);
+    }
+
+    // Hall of Fame collection
+    match /hallOfFame/{editionId} {
+      allow get: if isValidId(editionId);
+      allow list: if true;
+      allow create: if isValidId(editionId) && isValidHallOfFame(incoming()) && incoming().edition == editionId;
+      allow update: if isValidId(editionId) && isValidHallOfFame(incoming()) && incoming().edition == existing().edition;
+      allow delete: if isValidId(editionId);
+    }
+
+    function isValidSystemAuth(data) {
+      return data.keys().hasAll(['email', 'salt', 'hash', 'role', 'displayName'])
+        && data.email is string && data.email.size() <= 120
+        && data.salt is string && data.salt.size() <= 64
+        && data.hash is string && data.hash.size() <= 128
+        && data.role is string && data.role.size() <= 64
+        && data.displayName is string && data.displayName.size() <= 120;
+    }
+
+    // Schedule collection
+    match /schedule/{scheduleId} {
+      allow get: if isValidId(scheduleId);
+      allow list: if true;
+      allow create: if isValidId(scheduleId) && isValidSchedule(incoming()) && incoming().id == scheduleId;
+      allow update: if isValidId(scheduleId) && isValidSchedule(incoming()) && incoming().id == existing().id;
+      allow delete: if isValidId(scheduleId);
+    }
+
+    // System Auth collection for serverless admin verification (Read-only get, client writes forbidden)
+    match /system_auth/{authId} {
+      allow get: if isValidId(authId);
+      allow list, create, update, delete: if false;
+    }
+  }
+}
+
+

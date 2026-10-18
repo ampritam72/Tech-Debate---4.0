@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 270" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradients -->
+    <radialGradient id="bgGlow" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#0a2a6b" />
+      <stop offset="50%" stop-color="#041238" />
+      <stop offset="100%" stop-color="#02081a" />
+    </radialGradient>
+    
+    <linearGradient id="podiumGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00e5ff" />
+      <stop offset="50%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#00e5ff" />
+    </linearGradient>
+
+    <linearGradient id="screenGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0d3580" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#05163d" stop-opacity="0.95" />
+    </linearGradient>
+
+    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="intenseGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur1" />
+      <feGaussianBlur stdDeviation="15" result="blur2" />
+      <feMerge>
+        <feMergeNode in="blur2" />
+        <feMergeNode in="blur1" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Deep Stage Background -->
+  <rect width="400" height="270" fill="url(#bgGlow)" />
+
+  <!-- Overhead Stage Spotlights Cone Beams -->
+  <polygon points="60,0 20,180 120,180" fill="#00d2ff" opacity="0.12" />
+  <polygon points="140,0 90,200 210,200" fill="#00e5ff" opacity="0.18" />
+  <polygon points="260,0 190,200 310,200" fill="#00e5ff" opacity="0.18" />
+  <polygon points="340,0 280,180 380,180" fill="#00d2ff" opacity="0.12" />
+
+  <!-- Overhead Spotlight Fixtures -->
+  <circle cx="60" cy="8" r="5" fill="#00e5ff" filter="url(#neonGlow)" />
+  <circle cx="140" cy="8" r="6" fill="#ffffff" filter="url(#neonGlow)" />
+  <circle cx="200" cy="6" r="6" fill="#00e5ff" filter="url(#neonGlow)" />
+  <circle cx="260" cy="8" r="6" fill="#ffffff" filter="url(#neonGlow)" />
+  <circle cx="340" cy="8" r="5" fill="#00e5ff" filter="url(#neonGlow)" />
+
+  <!-- Left Angled Digital Screen -->
+  <polygon points="10,20 65,35 65,145 10,135" fill="url(#screenGrad)" stroke="#00d2ff" stroke-width="1.5" stroke-opacity="0.6" filter="url(#neonGlow)" />
+  <line x1="12" y1="24" x2="12" y2="133" stroke="#00e5ff" stroke-width="2" opacity="0.8" />
+
+  <!-- Right Angled Digital Screen -->
+  <polygon points="390,20 335,35 335,145 390,135" fill="url(#screenGrad)" stroke="#00d2ff" stroke-width="1.5" stroke-opacity="0.6" filter="url(#neonGlow)" />
+  <line x1="388" y1="24" x2="388" y2="133" stroke="#00e5ff" stroke-width="2" opacity="0.8" />
+
+  <!-- Center Stage Main Screen -->
+  <rect x="130" y="30" width="140" height="105" rx="4" fill="url(#screenGrad)" stroke="#00d2ff" stroke-width="1.5" stroke-opacity="0.7" filter="url(#neonGlow)" />
+
+  <!-- Trophy Wreath Crest on Center Screen -->
+  <g transform="translate(200, 75)" filter="url(#intenseGlow)">
+    <!-- Laurel Wreath Left -->
+    <path d="M -8,18 C -22,12 -30,-4 -24,-20 C -22,-16 -18,-10 -16,-6 C -20,2 -16,10 -8,14 Z" fill="#00e5ff" opacity="0.85" />
+    <path d="M -26,-12 C -24,-22 -14,-30 -4,-34 C -8,-28 -12,-20 -16,-14 Z" fill="#00e5ff" opacity="0.85" />
+    
+    <!-- Laurel Wreath Right -->
+    <path d="M 8,18 C 22,12 30,-4 24,-20 C 22,-16 18,-10 16,-6 C 20,2 16,10 8,14 Z" fill="#00e5ff" opacity="0.85" />
+    <path d="M 26,-12 C 24,-22 14,-30 4,-34 C 8,-28 12,-20 16,-14 Z" fill="#00e5ff" opacity="0.85" />
+
+    <!-- Center Trophy Cup -->
+    <!-- Cup Bowl -->
+    <path d="M -14,-22 L 14,-22 L 12,0 C 10,8 4,14 0,14 C -4,14 -10,8 -12,0 Z" fill="none" stroke="#00e5ff" stroke-width="2" />
+    <path d="M -11,-18 L 11,-18 L 9,-2 C 8,4 3,9 0,9 C -3,9 -8,4 -9,-2 Z" fill="#00e5ff" opacity="0.3" />
+    <!-- Cup Handles -->
+    <path d="M -14,-18 C -22,-18 -22,-6 -13,-4" fill="none" stroke="#00e5ff" stroke-width="1.5" />
+    <path d="M 14,-18 C 22,-18 22,-6 13,-4" fill="none" stroke="#00e5ff" stroke-width="1.5" />
+    <!-- Cup Stem and Base -->
+    <path d="M -2,14 L 2,14 L 3,22 L -3,22 Z" fill="#00e5ff" />
+    <rect x="-8" y="22" width="16" height="3" rx="1" fill="#00e5ff" />
+  </g>
+
+  <!-- Side Debater Desks / Podiums with Neon Glow -->
+  <rect x="75" y="150" width="30" height="24" rx="2" fill="#041235" stroke="#00e5ff" stroke-width="1.5" filter="url(#neonGlow)" />
+  <rect x="115" y="152" width="25" height="22" rx="2" fill="#041235" stroke="#00e5ff" stroke-width="1.2" opacity="0.8" />
+  
+  <rect x="295" y="150" width="30" height="24" rx="2" fill="#041235" stroke="#00e5ff" stroke-width="1.5" filter="url(#neonGlow)" />
+  <rect x="260" y="152" width="25" height="22" rx="2" fill="#041235" stroke="#00e5ff" stroke-width="1.2" opacity="0.8" />
+
+  <!-- Circular Stepped Stage Floors with Glowing Blue Rim Lighting -->
+  <!-- Outer Step Curve -->
+  <path d="M 0,205 C 100,185 300,185 400,205 L 400,270 L 0,270 Z" fill="#030c24" />
+  <path d="M 0,205 C 100,185 300,185 400,205" fill="none" stroke="#00d2ff" stroke-width="3" filter="url(#intenseGlow)" />
+  <path d="M 0,207 C 100,187 300,187 400,207" fill="none" stroke="#ffffff" stroke-width="1" />
+
+  <!-- Middle Step Curve -->
+  <path d="M 30,220 C 120,200 280,200 370,220" fill="none" stroke="#00e5ff" stroke-width="3.5" filter="url(#intenseGlow)" />
+  <path d="M 30,221 C 120,201 280,201 370,221" fill="none" stroke="#ffffff" stroke-width="1.2" />
+
+  <!-- Center Hexagonal/Octagonal Stage Riser -->
+  <polygon points="135,232 170,226 230,226 265,232 255,255 145,255" fill="#061845" stroke="#00e5ff" stroke-width="3" filter="url(#intenseGlow)" />
+  <polygon points="135,232 170,226 230,226 265,232 255,255 145,255" fill="none" stroke="#ffffff" stroke-width="1" />
+
+  <!-- Foreground Center Podium (The Focal Point) -->
+  <g transform="translate(200, 195)" filter="url(#neonGlow)">
+    <!-- Podium Slanted Top Surface -->
+    <polygon points="-38,-65 38,-65 32,-55 -32,-55" fill="#0b2c6d" stroke="#00e5ff" stroke-width="1.5" />
+    <line x1="-34" y1="-64" x2="34" y2="-64" stroke="#ffffff" stroke-width="1" />
+    
+    <!-- Microphones on Podium -->
+    <path d="M -12,-65 Q -14,-78 -10,-82" fill="none" stroke="#ffffff" stroke-width="1.5" />
+    <circle cx="-10" cy="-83" r="2" fill="#00e5ff" />
+    <path d="M 0,-65 Q 0,-80 2,-85" fill="none" stroke="#ffffff" stroke-width="1.5" />
+    <circle cx="2" cy="-86" r="2" fill="#00e5ff" />
+    <path d="M 12,-65 Q 14,-78 10,-82" fill="none" stroke="#ffffff" stroke-width="1.5" />
+    <circle cx="10" cy="-83" r="2" fill="#00e5ff" />
+
+    <!-- Podium Body -->
+    <polygon points="-28,-55 28,-55 24,15 -24,15" fill="#030e2b" stroke="#0072ff" stroke-width="1" />
+
+    <!-- Dual Glowing Vertical Neon Light Strips -->
+    <line x1="-18" y1="-55" x2="-16" y2="15" stroke="#00e5ff" stroke-width="3" filter="url(#intenseGlow)" />
+    <line x1="-18" y1="-55" x2="-16" y2="15" stroke="#ffffff" stroke-width="1" />
+    
+    <line x1="18" y1="-55" x2="16" y2="15" stroke="#00e5ff" stroke-width="3" filter="url(#intenseGlow)" />
+    <line x1="18" y1="-55" x2="16" y2="15" stroke="#ffffff" stroke-width="1" />
+
+    <!-- Center Soft Glow Reflection on Podium Face -->
+    <rect x="-12" y="-45" width="24" height="50" fill="#00d2ff" opacity="0.15" />
+  </g>
+
+  <!-- Floor Mirror Reflective Sheen -->
+  <ellipse cx="200" cy="265" rx="140" ry="8" fill="#00e5ff" opacity="0.3" filter="url(#intenseGlow)" />
+</svg>
