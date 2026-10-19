@@ -46,7 +46,7 @@ export const ContactPage: React.FC = () => {
       <SectionHeader
         badge="GET IN TOUCH"
         title="Contact & Helpdesk"
-        subtitle="Have questions regarding team eligibility, bKash / Nagad / Rocket transaction verification, or match logistics? Connect directly with the Tech Debate 4.0 Helpdesk."
+        subtitle="Have questions regarding team eligibility, bKash / Nagad transaction verification, or match logistics? Connect directly with the Tech Debate 4.0 Helpdesk."
         centered
       />
 

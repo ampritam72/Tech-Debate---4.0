@@ -10,7 +10,7 @@ import {
 
 export const INITIAL_TEAMS: Team[] = [
   {
-    id: 'TD4-TEAM-101',
+    id: 'TD4-TEAM-01',
     name: 'Logical Fallacy',
     batch: '25th Batch',
     department: 'Computer Science & Engineering',
@@ -21,7 +21,7 @@ export const INITIAL_TEAMS: Team[] = [
     members: [
       {
         id: 'm1',
-        teamId: 'TD4-TEAM-101',
+        teamId: 'TD4-TEAM-01',
         speakerRole: 1,
         fullName: 'Zubair Ahmed Fahim',
         studentId: '211311042',
@@ -31,7 +31,7 @@ export const INITIAL_TEAMS: Team[] = [
       },
       {
         id: 'm2',
-        teamId: 'TD4-TEAM-101',
+        teamId: 'TD4-TEAM-01',
         speakerRole: 2,
         fullName: 'Nusrat Jahan Oishee',
         studentId: '211311088',
@@ -41,7 +41,7 @@ export const INITIAL_TEAMS: Team[] = [
       },
       {
         id: 'm3',
-        teamId: 'TD4-TEAM-101',
+        teamId: 'TD4-TEAM-01',
         speakerRole: 3,
         fullName: 'Tanvir Hossain Ridoy',
         studentId: '211311105',
@@ -52,7 +52,7 @@ export const INITIAL_TEAMS: Team[] = [
     ],
     payment: {
       id: 'p1',
-      teamId: 'TD4-TEAM-101',
+      teamId: 'TD4-TEAM-01',
       method: 'bKash',
       senderNumber: '01712345678',
       transactionId: 'BK9482X192',
@@ -63,7 +63,7 @@ export const INITIAL_TEAMS: Team[] = [
     }
   },
   {
-    id: 'TD4-TEAM-102',
+    id: 'TD4-TEAM-02',
     name: 'Turing Machines',
     batch: '24th Batch',
     department: 'Computer Science & Engineering',
@@ -74,7 +74,7 @@ export const INITIAL_TEAMS: Team[] = [
     members: [
       {
         id: 'm4',
-        teamId: 'TD4-TEAM-102',
+        teamId: 'TD4-TEAM-02',
         speakerRole: 1,
         fullName: 'Shadman Shakib',
         studentId: '201311019',
@@ -84,7 +84,7 @@ export const INITIAL_TEAMS: Team[] = [
       },
       {
         id: 'm5',
-        teamId: 'TD4-TEAM-102',
+        teamId: 'TD4-TEAM-02',
         speakerRole: 2,
         fullName: 'Farhana Akhter Rimi',
         studentId: '201311045',
@@ -94,7 +94,7 @@ export const INITIAL_TEAMS: Team[] = [
       },
       {
         id: 'm6',
-        teamId: 'TD4-TEAM-102',
+        teamId: 'TD4-TEAM-02',
         speakerRole: 3,
         fullName: 'Mahfuzur Rahman',
         studentId: '201311072',
@@ -105,7 +105,7 @@ export const INITIAL_TEAMS: Team[] = [
     ],
     payment: {
       id: 'p2',
-      teamId: 'TD4-TEAM-102',
+      teamId: 'TD4-TEAM-02',
       method: 'Nagad',
       senderNumber: '01811223344',
       transactionId: 'NG772091KL',
@@ -116,7 +116,7 @@ export const INITIAL_TEAMS: Team[] = [
     }
   },
   {
-    id: 'TD4-TEAM-103',
+    id: 'TD4-TEAM-03',
     name: 'Binary Arguments',
     batch: '26th Batch',
     department: 'Computer Science & Engineering',
@@ -127,7 +127,7 @@ export const INITIAL_TEAMS: Team[] = [
     members: [
       {
         id: 'm7',
-        teamId: 'TD4-TEAM-103',
+        teamId: 'TD4-TEAM-03',
         speakerRole: 1,
         fullName: 'Sabbir Ahmed Khan',
         studentId: '221311033',
@@ -137,7 +137,7 @@ export const INITIAL_TEAMS: Team[] = [
       },
       {
         id: 'm8',
-        teamId: 'TD4-TEAM-103',
+        teamId: 'TD4-TEAM-03',
         speakerRole: 2,
         fullName: 'Afsana Mimi',
         studentId: '221311061',
@@ -147,7 +147,7 @@ export const INITIAL_TEAMS: Team[] = [
       },
       {
         id: 'm9',
-        teamId: 'TD4-TEAM-103',
+        teamId: 'TD4-TEAM-03',
         speakerRole: 3,
         fullName: 'Rashedul Islam',
         studentId: '221311094',
@@ -158,7 +158,7 @@ export const INITIAL_TEAMS: Team[] = [
     ],
     payment: {
       id: 'p3',
-      teamId: 'TD4-TEAM-103',
+      teamId: 'TD4-TEAM-03',
       method: 'Rocket',
       senderNumber: '01923456789',
       transactionId: 'RK55198200',
@@ -169,7 +169,7 @@ export const INITIAL_TEAMS: Team[] = [
     }
   },
   {
-    id: 'TD4-TEAM-104',
+    id: 'TD4-TEAM-04',
     name: 'Quantum Debaters',
     batch: '27th Batch',
     department: 'Computer Science & Engineering',
@@ -180,7 +180,7 @@ export const INITIAL_TEAMS: Team[] = [
     members: [
       {
         id: 'm10',
-        teamId: 'TD4-TEAM-104',
+        teamId: 'TD4-TEAM-04',
         speakerRole: 1,
         fullName: 'Mehedi Hasan Niloy',
         studentId: '231311005',
@@ -190,7 +190,7 @@ export const INITIAL_TEAMS: Team[] = [
       },
       {
         id: 'm11',
-        teamId: 'TD4-TEAM-104',
+        teamId: 'TD4-TEAM-04',
         speakerRole: 2,
         fullName: 'Sumaiya Akter',
         studentId: '231311041',
@@ -200,7 +200,7 @@ export const INITIAL_TEAMS: Team[] = [
       },
       {
         id: 'm12',
-        teamId: 'TD4-TEAM-104',
+        teamId: 'TD4-TEAM-04',
         speakerRole: 3,
         fullName: 'Kazi Arifur Rahman',
         studentId: '231311078',
@@ -211,7 +211,7 @@ export const INITIAL_TEAMS: Team[] = [
     ],
     payment: {
       id: 'p4',
-      teamId: 'TD4-TEAM-104',
+      teamId: 'TD4-TEAM-04',
       method: 'bKash',
       senderNumber: '01633445566',
       transactionId: 'BK33100918',
@@ -222,7 +222,7 @@ export const INITIAL_TEAMS: Team[] = [
     }
   },
   {
-    id: 'TD4-TEAM-105',
+    id: 'TD4-TEAM-05',
     name: 'Syntax Sovereigns',
     batch: '25th Batch',
     department: 'Computer Science & Engineering',
@@ -233,7 +233,7 @@ export const INITIAL_TEAMS: Team[] = [
     members: [
       {
         id: 'm13',
-        teamId: 'TD4-TEAM-105',
+        teamId: 'TD4-TEAM-05',
         speakerRole: 1,
         fullName: 'Anisur Rahman',
         studentId: '211311059',
@@ -243,7 +243,7 @@ export const INITIAL_TEAMS: Team[] = [
       },
       {
         id: 'm14',
-        teamId: 'TD4-TEAM-105',
+        teamId: 'TD4-TEAM-05',
         speakerRole: 2,
         fullName: 'Sadia Sultana',
         studentId: '211311082',
@@ -253,7 +253,7 @@ export const INITIAL_TEAMS: Team[] = [
       },
       {
         id: 'm15',
-        teamId: 'TD4-TEAM-105',
+        teamId: 'TD4-TEAM-05',
         speakerRole: 3,
         fullName: 'Naimul Haque',
         studentId: '211311119',
@@ -264,7 +264,7 @@ export const INITIAL_TEAMS: Team[] = [
     ],
     payment: {
       id: 'p5',
-      teamId: 'TD4-TEAM-105',
+      teamId: 'TD4-TEAM-05',
       method: 'bKash',
       senderNumber: '01511224488',
       transactionId: 'BK88219033',
@@ -274,7 +274,7 @@ export const INITIAL_TEAMS: Team[] = [
     }
   },
   {
-    id: 'TD4-TEAM-106',
+    id: 'TD4-TEAM-06',
     name: 'Recursive Logic',
     batch: '26th Batch',
     department: 'Computer Science & Engineering',
@@ -285,7 +285,7 @@ export const INITIAL_TEAMS: Team[] = [
     members: [
       {
         id: 'm16',
-        teamId: 'TD4-TEAM-106',
+        teamId: 'TD4-TEAM-06',
         speakerRole: 1,
         fullName: 'Shahriar Kabir',
         studentId: '221311018',
@@ -295,7 +295,7 @@ export const INITIAL_TEAMS: Team[] = [
       },
       {
         id: 'm17',
-        teamId: 'TD4-TEAM-106',
+        teamId: 'TD4-TEAM-06',
         speakerRole: 2,
         fullName: 'Tasnim Ferdous',
         studentId: '221311055',
@@ -305,7 +305,7 @@ export const INITIAL_TEAMS: Team[] = [
       },
       {
         id: 'm18',
-        teamId: 'TD4-TEAM-106',
+        teamId: 'TD4-TEAM-06',
         speakerRole: 3,
         fullName: 'Imtiaz Hossain',
         studentId: '221311090',
@@ -316,7 +316,7 @@ export const INITIAL_TEAMS: Team[] = [
     ],
     payment: {
       id: 'p6',
-      teamId: 'TD4-TEAM-106',
+      teamId: 'TD4-TEAM-06',
       method: 'Nagad',
       senderNumber: '01799887766',
       transactionId: 'NG99182377',

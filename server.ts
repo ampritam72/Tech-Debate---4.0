@@ -159,11 +159,21 @@ app.get('/api/teams', async (req, res) => {
       return { allTeams, allMembers, allPayments };
     });
 
+    const normalizeServerTeamId = (rawId: string): string => {
+      const m = String(rawId || '').match(/^TD4-TEAM-(\d+)$/i);
+      if (!m) return rawId;
+      let num = parseInt(m[1], 10);
+      if (isNaN(num)) return rawId;
+      if (num > 100) num = num - 100;
+      return `TD4-TEAM-${String(num).padStart(2, '0')}`;
+    };
+
     const populatedTeams = allTeams.map(t => {
-      const members = allMembers.filter(m => m.teamId === t.id);
-      const payment = allPayments.find(p => p.teamId === t.id) || {
-        id: `p-${t.id}`,
-        teamId: t.id,
+      const normTeamId = normalizeServerTeamId(t.id);
+      const members = allMembers.filter(m => m.teamId === t.id || m.teamId === normTeamId);
+      const payment = allPayments.find(p => p.teamId === t.id || p.teamId === normTeamId) || {
+        id: `p-${normTeamId}`,
+        teamId: normTeamId,
         method: 'bKash' as const,
         senderNumber: '',
         transactionId: 'N/A',
@@ -176,7 +186,7 @@ app.get('/api/teams', async (req, res) => {
       };
 
       return {
-        id: t.id,
+        id: normTeamId,
         name: t.name,
         batch: t.batch,
         department: t.department,
@@ -186,7 +196,7 @@ app.get('/api/teams', async (req, res) => {
         leaderId: members.find(m => m.isLeader)?.id || members[0]?.id || '',
         members: members.map(m => ({
           id: m.id,
-          teamId: m.teamId,
+          teamId: normTeamId,
           speakerRole: m.speakerRole,
           fullName: m.fullName,
           studentId: m.studentId,
@@ -197,7 +207,7 @@ app.get('/api/teams', async (req, res) => {
         })),
         payment: {
           id: payment.id,
-          teamId: payment.teamId,
+          teamId: normTeamId,
           method: payment.method,
           senderNumber: payment.senderNumber,
           transactionId: payment.transactionId,
@@ -251,16 +261,19 @@ app.post('/api/register', registrationLimiter, async (req, res) => {
         }
       }
 
-      // Generate TD4-TEAM-ID
+      // Generate TD4-TEAM-ID starting from TD4-TEAM-01
       const allExisting = await db.select({ id: teams.id }).from(teams);
       const existingIds = allExisting
         .map(t => {
-          const match = t.id.match(/TD4-TEAM-(\d+)/);
-          return match ? parseInt(match[1], 10) : 100;
+          const match = t.id.match(/TD4-TEAM-(\d+)/i);
+          if (!match) return 0;
+          let num = parseInt(match[1], 10);
+          if (num > 100) num = num - 100;
+          return num;
         })
-        .filter(n => !isNaN(n));
-      const nextNum = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 101;
-      const teamId = `TD4-TEAM-${nextNum}`;
+        .filter(n => !isNaN(n) && n > 0);
+      const nextNum = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1;
+      const teamId = `TD4-TEAM-${String(nextNum).padStart(2, '0')}`;
 
       // 1. Insert team
       await db.insert(teams).values({

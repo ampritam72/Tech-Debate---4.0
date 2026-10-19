@@ -126,18 +126,56 @@ function sortTeamsDesc(list: Team[]): Team[] {
   });
 }
 
+function normalizeTeamId(rawId: string): string {
+  const match = String(rawId || '').match(/^TD4-TEAM-(\d+)$/i);
+  if (!match) return rawId;
+  let num = parseInt(match[1], 10);
+  if (isNaN(num)) return rawId;
+  if (num > 100) num = num - 100;
+  return `TD4-TEAM-${String(num).padStart(2, '0')}`;
+}
+
+function normalizeTeamObject(t: Team): Team {
+  if (!t || !t.id) return t;
+  const normId = normalizeTeamId(t.id);
+  if (normId === t.id) return t;
+  return {
+    ...t,
+    id: normId,
+    leaderId: t.leaderId ? String(t.leaderId).replace(t.id, normId) : t.leaderId,
+    members: Array.isArray(t.members)
+      ? t.members.map((m) => ({
+          ...m,
+          id: m.id ? String(m.id).replace(t.id, normId) : m.id,
+          teamId: normId,
+        }))
+      : [],
+    payment: t.payment
+      ? {
+          ...t.payment,
+          id: t.payment.id ? String(t.payment.id).replace(t.id, normId) : t.payment.id,
+          teamId: normId,
+        }
+      : t.payment,
+  };
+}
+
 function mergeTeamsList(primary: Team[], secondary: Team[], deletedIds: Set<string>): Team[] {
   const byId = new Map<string, Team>();
   const byName = new Set<string>();
 
-  for (const t of primary) {
-    if (!t || !t.id || deletedIds.has(t.id)) continue;
+  for (const rawTeam of primary) {
+    if (!rawTeam || !rawTeam.id) continue;
+    const t = normalizeTeamObject(rawTeam);
+    if (deletedIds.has(t.id) || deletedIds.has(rawTeam.id)) continue;
     byId.set(t.id, t);
     if (t.name) byName.add(t.name.trim().toLowerCase());
   }
 
-  for (const t of secondary) {
-    if (!t || !t.id || deletedIds.has(t.id)) continue;
+  for (const rawTeam of secondary) {
+    if (!rawTeam || !rawTeam.id) continue;
+    const t = normalizeTeamObject(rawTeam);
+    if (deletedIds.has(t.id) || deletedIds.has(rawTeam.id)) continue;
     const normName = (t.name || '').trim().toLowerCase();
     if (!byId.has(t.id) && (!normName || !byName.has(normName))) {
       byId.set(t.id, t);
@@ -149,7 +187,9 @@ function mergeTeamsList(primary: Team[], secondary: Team[], deletedIds: Set<stri
 }
 
 export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [teams, setTeams] = useState<Team[]>(() => StorageService.getTeams());
+  const [teams, setTeams] = useState<Team[]>(() =>
+    StorageService.getTeams().map((t) => normalizeTeamObject(t))
+  );
   const [fixtures, setFixtures] = useState<MatchFixture[]>(() => StorageService.getFixtures());
   const [hallOfFame, setHallOfFame] = useState<HallOfFameEdition[]>(() => StorageService.getHallOfFame());
   const [notices, setNotices] = useState<Notice[]>(() => StorageService.getNotices());
@@ -165,15 +205,18 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const firestoreTeamsCacheRef = useRef<Team[]>([]);
 
   const generateNextTeamId = (existingTeams: Team[]): string => {
-    let maxNum = 100;
+    let maxNum = 0;
     existingTeams.forEach((t) => {
       const match = String(t.id || '').match(/TD4-TEAM-(\d+)/i);
       if (match) {
-        const num = parseInt(match[1], 10);
-        if (!isNaN(num) && num > maxNum) maxNum = num;
+        let num = parseInt(match[1], 10);
+        if (!isNaN(num)) {
+          if (num > 100) num = num - 100;
+          if (num > maxNum) maxNum = num;
+        }
       }
     });
-    return `TD4-TEAM-${maxNum + 1}`;
+    return `TD4-TEAM-${String(maxNum + 1).padStart(2, '0')}`;
   };
 
   // Bidirectional sync between Cloud Firestore, legacy localStorage unsynced queue, and PostgreSQL backend
@@ -351,8 +394,11 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const firestoreTeams: Team[] = [];
         snapshot.forEach((docSnap) => {
           const data = docSnap.data() as Team;
-          if (data && data.id && !deletedTeamIdsRef.current.has(data.id)) {
-            firestoreTeams.push(data);
+          if (data && data.id) {
+            const norm = normalizeTeamObject(data);
+            if (!deletedTeamIdsRef.current.has(norm.id) && !deletedTeamIdsRef.current.has(data.id)) {
+              firestoreTeams.push(norm);
+            }
           }
         });
         firestoreTeamsCacheRef.current = firestoreTeams;

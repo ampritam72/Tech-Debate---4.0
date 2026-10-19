@@ -343,7 +343,7 @@ export const AdminDashboardPage: React.FC = () => {
                 Pending Verification Queue ({pendingPayments})
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                Teams waiting for their bKash, Nagad, or Rocket TrxID confirmation.
+                Teams waiting for their bKash or Nagad TrxID confirmation.
               </p>
               
               <div className="space-y-3">

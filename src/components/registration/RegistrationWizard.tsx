@@ -126,22 +126,19 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
   const [transactionId, setTransactionId] = useState('');
   const [amount] = useState(350);
 
-  // Official MFS recipient numbers (bKash / Nagad / Rocket: 01718169072)
-  const MFS_ACCOUNTS = {
+  // Official MFS recipient numbers (bKash / Nagad: 01718169072)
+  const MFS_ACCOUNTS: Record<'bKash' | 'Nagad', { number: string; recipientName: string; type: string; logo: string }> = {
     bKash: {
       number: '01718169072',
       recipientName: 'Organizing Committee (Tech Debate 4.0)',
-      type: 'Personal (Send Money)'
+      type: 'Personal (Send Money)',
+      logo: '/images/bikash.png'
     },
     Nagad: {
       number: '01718169072',
       recipientName: 'Organizing Committee (Tech Debate 4.0)',
-      type: 'Personal (Send Money)'
-    },
-    Rocket: {
-      number: '01718169072',
-      recipientName: 'Organizing Committee (Tech Debate 4.0)',
-      type: 'Personal (Send Money)'
+      type: 'Personal (Send Money)',
+      logo: '/images/nagad.png'
     }
   };
 
@@ -414,58 +411,74 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
 
   // If already registered and showing voucher
   if (registeredTeam) {
+    const selectedMfsLogo = paymentMethod === 'Nagad' ? '/images/nagad.png' : '/images/bikash.png';
     return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-12 relative">
+      <div className="max-w-3xl mx-auto px-3 sm:px-6 py-6 sm:py-12 relative">
         
-        {/* SUCCESS POPUP MODAL */}
+        {/* REGISTRATION & PAYMENT PENDING POPUP MODAL (Phone & Web Responsive) */}
         {showSuccessModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-            <div className="relative w-full max-w-lg rounded-3xl border border-cyan-400/40 bg-[#091738] p-6 sm:p-8 shadow-[0_0_60px_rgba(0,229,255,0.3)] text-center space-y-5 overflow-hidden">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+            <div className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl sm:rounded-3xl border border-amber-400/40 bg-[#091738] p-5 sm:p-8 shadow-[0_0_60px_rgba(245,158,11,0.25)] text-center space-y-4 sm:space-y-5">
               
               {/* Background Glows */}
-              <div className="absolute -top-20 -left-20 w-44 h-44 bg-cyan-500/25 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute -bottom-20 -right-20 w-44 h-44 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -top-20 -left-20 w-44 h-44 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-20 -right-20 w-44 h-44 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none" />
 
               {/* Close Button */}
               <button
                 onClick={() => setShowSuccessModal(false)}
-                className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
 
-              {/* Animated Success Badge */}
-              <div className="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-emerald-300 mx-auto shadow-[0_0_30px_rgba(16,185,129,0.5)]">
-                <CheckCircle2 className="w-10 h-10 animate-pulse" />
+              {/* Animated Pending Badge */}
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-amber-300 mx-auto shadow-[0_0_30px_rgba(245,158,11,0.4)]">
+                <Clock className="w-8 h-8 sm:w-10 sm:h-10 animate-pulse" />
               </div>
 
               <div>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-[11px] font-mono font-bold tracking-widest text-emerald-300 uppercase mb-2">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  CLOUD DATABASE VERIFIED
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-[10px] sm:text-[11px] font-mono font-bold tracking-widest text-amber-300 uppercase mb-2">
+                  <Clock className="w-3.5 h-3.5 shrink-0" />
+                  REGISTRATION & PAYMENT PENDING
                 </span>
-                <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white">
-                  Registration Saved to Cloud!
+                <h2 className="font-display text-xl sm:text-3xl font-extrabold text-white leading-tight">
+                  Registration & Payment Status Pending
                 </h2>
                 <p className="mt-1.5 text-xs sm:text-sm text-slate-300">
-                  Welcome, <strong className="text-cyan-300">{registeredTeam.name}</strong>! Your squad registration is permanently recorded in the live cloud database and is pending payment review.
+                  Team <strong className="text-cyan-300">{registeredTeam.name}</strong> has been submitted for verification.
                 </p>
               </div>
 
+              {/* SMS Notification Banner (Phone & Web) */}
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-500/15 border border-amber-400/50 text-left flex items-start gap-3 shadow-inner">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-500/25 border border-amber-400/50 flex items-center justify-center text-amber-300 shrink-0 mt-0.5">
+                  <Phone className="w-4 h-4" />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <span className="text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wider text-amber-300 block">
+                    SMS Confirmation Notice
+                  </span>
+                  <p className="text-xs sm:text-sm font-medium text-white leading-relaxed break-words">
+                    Registration and payment status pending. You will get a SMS from <strong className="font-mono text-amber-300 underline decoration-amber-400/60">01718169072</strong> when your registration is complete.
+                  </p>
+                </div>
+              </div>
+
               {/* Official Squad ID Card */}
-              <div className="p-4 rounded-2xl bg-[#061128] border border-cyan-500/30 flex items-center justify-between gap-3 text-left">
-                <div>
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#061128] border border-cyan-500/30 flex items-center justify-between gap-3 text-left">
+                <div className="min-w-0">
                   <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
                     Official Squad ID
                   </span>
-                  <span className="font-mono text-xl sm:text-2xl font-extrabold text-cyan-300">
+                  <span className="font-mono text-lg sm:text-2xl font-extrabold text-cyan-300 truncate block">
                     {registeredTeam.id}
                   </span>
                 </div>
                 <button
                   onClick={copyTeamId}
-                  className="px-3.5 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/30 transition-all flex items-center gap-1.5 text-xs font-mono cursor-pointer shrink-0"
+                  className="px-3 sm:px-3.5 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/30 transition-all flex items-center gap-1.5 text-xs font-mono cursor-pointer shrink-0"
                 >
                   {copiedId ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                   <span>{copiedId ? 'Copied' : 'Copy ID'}</span>
@@ -473,14 +486,17 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
               </div>
 
               {/* Details Pill Grid */}
-              <div className="grid grid-cols-2 gap-2.5 text-left text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-left text-xs">
                 <div className="p-3 rounded-xl bg-[#061128]/70 border border-cyan-500/20">
-                  <span className="text-[10px] font-mono text-slate-400 uppercase block">Academic Batch</span>
-                  <span className="font-bold text-white block mt-0.5">{registeredTeam.batch}</span>
+                  <span className="text-[10px] font-mono text-slate-400 uppercase block">Registration & Payment Status</span>
+                  <span className="font-bold text-amber-300 block mt-0.5">PENDING VERIFICATION</span>
                 </div>
                 <div className="p-3 rounded-xl bg-[#061128]/70 border border-cyan-500/20">
                   <span className="text-[10px] font-mono text-slate-400 uppercase block">Payment (MFS)</span>
-                  <span className="font-mono font-bold text-cyan-300 block mt-0.5">{paymentMethod} • BDT 350</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <img src={selectedMfsLogo} alt={paymentMethod} className="h-5 w-auto object-contain rounded" />
+                    <span className="font-mono font-bold text-cyan-300">BDT 350</span>
+                  </div>
                 </div>
               </div>
 
@@ -490,8 +506,8 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
                   Squad Debaters (3 Members):
                 </span>
                 {members.map((m, idx) => (
-                  <div key={idx} className="flex items-center justify-between gap-2 text-xs py-1 border-b border-cyan-500/10 last:border-0">
-                    <span className="font-semibold text-white truncate max-w-[170px]">{m.fullName || `Speaker ${idx + 1}`}</span>
+                  <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-0.5 sm:gap-2 text-xs py-1.5 border-b border-cyan-500/10 last:border-0">
+                    <span className="font-semibold text-white truncate max-w-full sm:max-w-[170px]">{m.fullName || `Speaker ${idx + 1}`}</span>
                     <span className="font-mono text-[11px] text-cyan-300 shrink-0">ID: {m.studentId} • {m.batch || registeredTeam.batch}</span>
                   </div>
                 ))}
@@ -519,31 +535,47 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
           </div>
         )}
 
-        {/* Full Page Voucher */}
-        <div className="printable-voucher rounded-3xl border border-cyan-500/30 bg-[#091738]/95 p-6 sm:p-10 backdrop-blur-2xl shadow-2xl text-center space-y-6">
-          <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-emerald-300 mx-auto shadow-[0_0_20px_rgba(16,185,129,0.4)]">
-            <CheckCircle2 className="w-8 h-8" />
+        {/* Full Page Voucher (Phone & Web Responsive) */}
+        <div className="printable-voucher rounded-2xl sm:rounded-3xl border border-amber-500/35 bg-[#091738]/95 p-5 sm:p-10 backdrop-blur-2xl shadow-2xl text-center space-y-5 sm:space-y-6">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-amber-300 mx-auto shadow-[0_0_20px_rgba(245,158,11,0.35)]">
+            <Clock className="w-7 h-7 sm:w-8 sm:h-8" />
           </div>
 
           <div>
-            <span className="text-xs font-mono font-bold tracking-widest text-cyan-400 uppercase block mb-1">
-              REGISTRATION SUBMITTED • SUCCESS
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-[10px] sm:text-xs font-mono font-bold tracking-widest text-amber-300 uppercase mb-2">
+              <Clock className="w-3.5 h-3.5 shrink-0" />
+              REGISTRATION & PAYMENT STATUS: PENDING
             </span>
-            <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white">
+            <h2 className="font-display text-xl sm:text-3xl font-extrabold text-white">
               Welcome, {registeredTeam.name}!
             </h2>
-            <p className="mt-2 text-xs sm:text-sm text-slate-300 max-w-md mx-auto">
-              Your squad registration and payment verification request have been logged into the Tech Debate 4.0 system.
+            <p className="mt-1.5 text-xs sm:text-sm text-amber-200/90 font-medium max-w-lg mx-auto">
+              Registration and payment status pending. You will get a SMS from <strong className="font-mono text-amber-300">01718169072</strong> when your registration is complete.
             </p>
           </div>
 
+          {/* Pending Status & SMS Confirmation Notice Box */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/15 border border-amber-400/50 max-w-lg mx-auto text-left flex items-start gap-3.5">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/25 border border-amber-400/50 flex items-center justify-center text-amber-300 shrink-0 mt-0.5">
+              <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div className="space-y-1 min-w-0">
+              <span className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider text-amber-300 block">
+                Registration & Payment Status Pending
+              </span>
+              <p className="text-xs sm:text-sm text-white leading-relaxed font-medium break-words">
+                Registration and payment status pending. You will get a SMS from <strong className="font-mono text-amber-300 underline decoration-amber-400/60">01718169072</strong> when your registration is complete.
+              </p>
+            </div>
+          </div>
+
           {/* Registration ID Voucher Box */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-[#061128] border border-cyan-500/25 max-w-md mx-auto flex items-center justify-between gap-3">
-            <div className="text-left">
+          <div className="p-4 sm:p-5 rounded-2xl bg-[#061128] border border-cyan-500/25 max-w-lg mx-auto flex items-center justify-between gap-3">
+            <div className="text-left min-w-0">
               <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
                 Official Squad ID
               </span>
-              <span className="font-mono text-lg sm:text-2xl font-extrabold text-cyan-300">
+              <span className="font-mono text-lg sm:text-2xl font-extrabold text-cyan-300 truncate block">
                 {registeredTeam.id}
               </span>
             </div>
@@ -557,7 +589,7 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
           </div>
 
           {/* Squad Roster Overview */}
-          <div className="p-4 rounded-2xl bg-[#061128]/80 border border-cyan-500/20 max-w-md mx-auto text-left space-y-2">
+          <div className="p-4 rounded-2xl bg-[#061128]/80 border border-cyan-500/20 max-w-lg mx-auto text-left space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-mono text-cyan-400 uppercase tracking-wider block font-bold">
                 Squad Debaters (3 Members):
@@ -575,10 +607,10 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
           <div className="no-print pt-2 flex flex-col sm:flex-row justify-center gap-3">
             <button
               onClick={() => setShowSuccessModal(true)}
-              className="px-5 py-3 rounded-xl bg-cyan-500/15 border border-cyan-400/60 text-cyan-300 text-xs font-bold font-mono tracking-wider flex items-center justify-center gap-2 hover:bg-cyan-500/25 transition-all cursor-pointer"
+              className="px-5 py-3 rounded-xl bg-amber-500/15 border border-amber-400/60 text-amber-300 text-xs font-bold font-mono tracking-wider flex items-center justify-center gap-2 hover:bg-amber-500/25 transition-all cursor-pointer"
             >
-              <Sparkles className="w-4 h-4" />
-              <span>Show Success Popup</span>
+              <Clock className="w-4 h-4" />
+              <span>Show Status Popup</span>
             </button>
             <button
               onClick={() => window.print()}
@@ -1261,30 +1293,44 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
                 <label className="block text-xs font-mono font-semibold text-slate-300 uppercase tracking-wider mb-3">
                   Select MFS Method <span className="text-rose-400">*</span>
                 </label>
-                <div className="grid grid-cols-3 gap-2.5 sm:gap-3.5">
-                  {(['bKash', 'Nagad', 'Rocket'] as PaymentMethod[]).map(pm => (
-                    <button
-                      key={pm}
-                      type="button"
-                      onClick={() => setPaymentMethod(pm)}
-                      className={`py-3 px-3 sm:px-4 rounded-2xl border text-xs sm:text-sm font-display font-extrabold tracking-wide transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                        paymentMethod === pm
-                          ? 'border-cyan-400 bg-cyan-500/25 text-white shadow-[0_0_20px_rgba(0,229,255,0.35)] scale-[1.02]'
-                          : 'border-sky-500/25 bg-[#071630]/90 text-slate-300 hover:border-sky-400/50'
-                      }`}
-                    >
-                      <span>{pm}</span>
-                    </button>
-                  ))}
+                <div className="grid grid-cols-2 gap-3.5 sm:gap-4">
+                  {(['bKash', 'Nagad'] as const).map(pm => {
+                    const imgSrc = pm === 'bKash' ? '/images/bikash.png' : '/images/nagad.png';
+                    const isSelected = paymentMethod === pm;
+                    return (
+                      <button
+                        key={pm}
+                        type="button"
+                        onClick={() => setPaymentMethod(pm)}
+                        aria-label={pm}
+                        className={`py-3 px-4 sm:px-6 rounded-2xl border transition-all cursor-pointer flex items-center justify-center min-h-[64px] ${
+                          isSelected
+                            ? 'border-cyan-400 bg-cyan-500/25 text-white shadow-[0_0_20px_rgba(0,229,255,0.35)] scale-[1.02]'
+                            : 'border-sky-500/25 bg-[#071630]/90 text-slate-300 hover:border-sky-400/50'
+                        }`}
+                      >
+                        <img
+                          src={imgSrc}
+                          alt={pm}
+                          className="h-10 sm:h-12 w-auto max-w-[150px] object-contain"
+                        />
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               {/* MFS Send Money Instruction Card */}
-              {MFS_ACCOUNTS[paymentMethod] && (
+              {(paymentMethod === 'bKash' || paymentMethod === 'Nagad') && MFS_ACCOUNTS[paymentMethod] && (
                 <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#0d2752]/90 via-[#0a1e42]/95 to-[#071630]/95 border border-sky-400/35 space-y-2">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <img
+                          src={MFS_ACCOUNTS[paymentMethod].logo}
+                          alt={paymentMethod}
+                          className="h-7 w-auto object-contain rounded"
+                        />
                         <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-400 text-slate-950 uppercase">
                           {paymentMethod} Send Money
                         </span>
@@ -1550,13 +1596,15 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
             </h4>
 
             <div className="space-y-3 text-xs">
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-full bg-amber-500/20 border border-amber-400 flex items-center justify-center text-amber-300 shrink-0">
+              <div className="flex items-start gap-3">
+                <div className="w-7 h-7 rounded-full bg-amber-500/20 border border-amber-400 flex items-center justify-center text-amber-300 shrink-0 mt-0.5">
                   <Clock className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <span className="font-bold text-amber-300 block">Pending Review</span>
-                  <span className="text-slate-400 text-[11px]">Payment and roster verification in progress</span>
+                  <span className="font-bold text-amber-300 block">Registration & Payment Pending</span>
+                  <span className="text-slate-300 text-[11px] leading-relaxed block mt-0.5">
+                    Registration and payment status pending. You will get a SMS from <strong className="font-mono text-amber-300">01718169072</strong> when your registration is complete.
+                  </span>
                 </div>
               </div>
 
@@ -1566,7 +1614,7 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
                 </div>
                 <div>
                   <span className="font-bold text-emerald-300 block">Verified Squad</span>
-                  <span className="text-slate-400 text-[11px]">Official fixture inclusion confirmed</span>
+                  <span className="text-slate-400 text-[11px]">Official fixture inclusion confirmed via SMS</span>
                 </div>
               </div>
             </div>
