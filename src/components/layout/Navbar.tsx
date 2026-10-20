@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowUpRight, Menu, X, Bell, Shield } from 'lucide-react';
+import { ArrowUpRight, Menu, X } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { TechDebateLogo } from '../common/TechDebateLogo';
 import { MagneticButton } from '../motion';
@@ -9,7 +9,6 @@ export interface NavbarProps {
   currentTab?: string;
   onSelectTab?: (tab: string) => void;
   onOpenAdminModal?: () => void;
-  onOpenTimer?: () => void;
 }
 
 const links = [
@@ -25,8 +24,6 @@ const links = [
 export const Navbar: React.FC<NavbarProps> = ({
   currentTab = 'home',
   onSelectTab,
-  onOpenAdminModal,
-  onOpenTimer,
 }) => {
   const [open, setOpen] = useState(false);
   const { isAuthenticated, logout } = useAdminAuth();
@@ -93,38 +90,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           })}
         </nav>
 
-        {/* Right Action Block (Controls + Register CTA) */}
+        {/* Right Action Block (Primary Register CTA) */}
         <div className="hidden lg:flex items-center gap-3">
-          {/* Admin Panel Login / Dashboard Button (Always visible on Desktop) */}
-          {isAuthenticated ? (
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={(e) => handleNavClick(e, 'admin')}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-mono font-bold rounded-xl clay-tab-active text-cyan-200 transition-all cursor-pointer"
-              >
-                <Shield size={14} className="text-cyan-300" />
-                <span>Admin Panel</span>
-              </button>
-              <button
-                onClick={logout}
-                className="px-2.5 py-1.5 text-xs font-medium text-rose-400 hover:text-rose-300 rounded-lg cursor-pointer"
-                title="Sign Out"
-              >
-                Exit
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => onOpenAdminModal?.()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-mono font-bold rounded-xl border border-cyan-400/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-200 transition-all cursor-pointer"
-              title="Open Admin Panel Login"
-            >
-              <Shield size={14} className="text-cyan-300" />
-              <span>Admin</span>
-            </button>
-          )}
-
           {/* Primary Action Button: Register Now */}
           <MagneticButton>
             <a
@@ -149,30 +116,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           </MagneticButton>
         </div>
 
-        {/* Mobile Right Controls: Quick Admin Button + Hamburger Toggle */}
+        {/* Mobile Right Controls: Hamburger Toggle */}
         <div className="flex items-center gap-2 lg:hidden">
-          <button
-            type="button"
-            onClick={(e) => {
-              if (isAuthenticated) {
-                handleNavClick(e, 'admin');
-              } else {
-                onOpenAdminModal?.();
-              }
-            }}
-            className="
-              inline-flex items-center gap-1.5 h-11 px-3
-              rounded-xl border border-cyan-400/35
-              bg-cyan-500/15 text-cyan-200 hover:text-white
-              text-xs font-mono font-bold
-              cursor-pointer transition-all touch-manipulation active:scale-95
-            "
-            aria-label="Admin Panel"
-          >
-            <Shield size={15} className="text-cyan-300 shrink-0" />
-            <span>{isAuthenticated ? 'Admin' : 'Admin'}</span>
-          </button>
-
           <button
             onClick={() => setOpen((v) => !v)}
             className="
@@ -234,58 +179,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span>Register Now (350tk)</span>
                 <ArrowUpRight size={18} />
               </a>
-
-              {onOpenTimer && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onOpenTimer();
-                    setOpen(false);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 text-cyan-300 min-h-[44px] py-2.5 px-4 rounded-xl bg-cyan-500/15 border border-cyan-400/30 cursor-pointer font-bold text-xs font-mono touch-manipulation active:scale-[0.98]"
-                >
-                  <Bell className="w-4 h-4 text-cyan-400" />
-                  <span>Debate Timer (4m + 3m Bells)</span>
-                </button>
-              )}
-            </div>
-
-            {/* Mobile Admin Panel Controls (Always visible for both logged-out and logged-in states) */}
-            <div className="pt-3.5 mt-2.5 border-t border-sky-200 dark:border-cyan-400/20 px-1">
-              {isAuthenticated ? (
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={(e) => handleNavClick(e, 'admin')}
-                    className="flex-1 flex items-center justify-center gap-2 text-cyan-200 min-h-[44px] py-2.5 px-4 rounded-xl clay-tab-active cursor-pointer font-semibold touch-manipulation active:scale-[0.98]"
-                  >
-                    <Shield className="w-4 h-4 text-cyan-300" />
-                    <span>Open Admin Panel</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      logout();
-                      setOpen(false);
-                    }}
-                    className="min-h-[44px] py-2.5 px-4 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 font-semibold text-xs cursor-pointer touch-manipulation active:scale-[0.98]"
-                  >
-                    Exit
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onOpenAdminModal?.();
-                    setOpen(false);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 text-sky-700 dark:text-cyan-200 hover:text-sky-900 min-h-[44px] py-2.5 px-4 rounded-xl bg-sky-100 dark:bg-cyan-400/15 border border-sky-200 dark:border-cyan-400/30 cursor-pointer font-semibold touch-manipulation active:scale-[0.98]"
-                >
-                  <Shield className="w-4 h-4 text-sky-600 dark:text-cyan-300" />
-                  <span>Admin Panel Login</span>
-                </button>
-              )}
             </div>
           </motion.div>
         )}

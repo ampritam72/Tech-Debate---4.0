@@ -7,11 +7,11 @@ interface StatusBadgeProps {
   type?: 'payment' | 'match' | 'team';
 }
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, type = 'payment' }) => {
+export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   if (status === 'VERIFIED' || status === 'Completed') {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-        <CheckCircle2 className="w-3.5 h-3.5" />
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400 whitespace-nowrap">
+        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
         <span>{status === 'VERIFIED' ? 'Verified' : 'Completed'}</span>
       </span>
     );
@@ -19,8 +19,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, type = 'paymen
 
   if (status === 'PENDING' || status === 'Upcoming') {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
-        <Clock className="w-3.5 h-3.5" />
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-400 whitespace-nowrap">
+        <Clock className="w-3.5 h-3.5 shrink-0" />
         <span>{status === 'PENDING' ? 'Pending Verification' : 'Upcoming'}</span>
       </span>
     );
@@ -28,8 +28,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, type = 'paymen
 
   if (status === 'Live') {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-600 dark:text-rose-400 animate-pulse">
-        <PlayCircle className="w-3.5 h-3.5" />
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-400 animate-pulse whitespace-nowrap">
+        <PlayCircle className="w-3.5 h-3.5 shrink-0" />
         <span>Live Round</span>
       </span>
     );
@@ -37,16 +37,16 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, type = 'paymen
 
   if (status === 'REJECTED' || status === 'DISQUALIFIED' || status === 'Cancelled') {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-600 dark:text-rose-400">
-        <XCircle className="w-3.5 h-3.5" />
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-400 whitespace-nowrap">
+        <XCircle className="w-3.5 h-3.5 shrink-0" />
         <span>{status}</span>
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-      <AlertCircle className="w-3.5 h-3.5" />
+    <span className="inline-flex items-center gap-1.5 text-xs text-slate-400 whitespace-nowrap">
+      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
       <span>{status}</span>
     </span>
   );

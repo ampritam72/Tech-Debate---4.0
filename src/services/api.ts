@@ -1,4 +1,4 @@
-import { Team, MatchFixture, HallOfFameEdition, Notice } from '../types';
+import { Team, MatchFixture, HallOfFameEdition, Notice, GalleryPhoto } from '../types';
 import { StorageService } from './storage';
 import {
   db,
@@ -480,6 +480,71 @@ export const ApiService = {
     });
     if (!res.ok) throw new Error('Failed to update hall of fame');
     return data || { success: true };
+  },
+
+  // Gallery Editor & public/gallery file storage
+  getGallery: async (forceRefresh = true): Promise<GalleryPhoto[]> => {
+    return fetchWithCache<GalleryPhoto[]>('/api/gallery', forceRefresh);
+  },
+
+  uploadGalleryImages: async (
+    category: string,
+    files: Array<{ fileName: string; dataUrl: string }>
+  ): Promise<{ success: boolean; urls: string[]; segments: GalleryPhoto[] }> => {
+    const { res, isJson, data } = await apiFetch<{
+      success: boolean;
+      urls: string[];
+      segments: GalleryPhoto[];
+      error?: string;
+    }>('/api/admin/gallery/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category, files }),
+    });
+    invalidateCache('/api/gallery');
+    if (!res.ok || !isJson || !data) {
+      throw new Error(data?.error || 'Failed to upload gallery pictures to public/gallery');
+    }
+    return data;
+  },
+
+  saveGallerySegments: async (
+    segments: GalleryPhoto[]
+  ): Promise<{ success: boolean; segments: GalleryPhoto[] }> => {
+    const { res, isJson, data } = await apiFetch<{
+      success: boolean;
+      segments: GalleryPhoto[];
+      error?: string;
+    }>('/api/admin/gallery', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ segments }),
+    });
+    invalidateCache('/api/gallery');
+    if (!res.ok || !isJson || !data) {
+      throw new Error(data?.error || 'Failed to save gallery segments');
+    }
+    return data;
+  },
+
+  deleteGalleryFile: async (
+    category: string,
+    imageUrl: string
+  ): Promise<{ success: boolean; segments: GalleryPhoto[] }> => {
+    const { res, isJson, data } = await apiFetch<{
+      success: boolean;
+      segments: GalleryPhoto[];
+      error?: string;
+    }>('/api/admin/gallery/file', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category, imageUrl }),
+    });
+    invalidateCache('/api/gallery');
+    if (!res.ok || !isJson || !data) {
+      throw new Error(data?.error || 'Failed to delete gallery image');
+    }
+    return data;
   },
 
   // Auth sync

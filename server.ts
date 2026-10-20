@@ -1,6 +1,7 @@
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import * as dotenv from 'dotenv';
 import { db, withDbRetry } from './src/db/index.ts';
@@ -29,7 +30,7 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 // Application Settings DB Helpers
 async function getSetting(key: string, defaultVal: string = ''): Promise<string> {
   try {
-    const row = await db.select().from(appSettings).where(eq(appSettings.key, key));
+    const row = await withDbRetry(() => db.select().from(appSettings).where(eq(appSettings.key, key)));
     return row.length > 0 ? row[0].value : defaultVal;
   } catch {
     return defaultVal;
@@ -38,12 +39,14 @@ async function getSetting(key: string, defaultVal: string = ''): Promise<string>
 
 async function setSetting(key: string, value: string): Promise<void> {
   try {
-    const existing = await db.select().from(appSettings).where(eq(appSettings.key, key));
-    if (existing.length > 0) {
-      await db.update(appSettings).set({ value, updatedAt: new Date() }).where(eq(appSettings.key, key));
-    } else {
-      await db.insert(appSettings).values({ key, value });
-    }
+    await withDbRetry(async () => {
+      const existing = await db.select().from(appSettings).where(eq(appSettings.key, key));
+      if (existing.length > 0) {
+        await db.update(appSettings).set({ value, updatedAt: new Date() }).where(eq(appSettings.key, key));
+      } else {
+        await db.insert(appSettings).values({ key, value });
+      }
+    });
   } catch (err) {
     console.error('Failed to set setting:', key, err);
   }
@@ -107,7 +110,8 @@ async function syncTeamToGoogleSheet(teamPayload: {
   }
 }
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Enable CORS so Vercel or external frontends can read/write the Cloud SQL database directly
 app.use((req, res, next) => {
@@ -360,6 +364,20 @@ app.post('/api/register', registrationLimiter, async (req, res) => {
 // 2. ADMIN PAYMENT & SQUAD MANAGEMENT APIS
 // ==========================================
 
+// Helper to get both normalized (01+) and legacy (101+) team IDs
+function getCandidateTeamIds(teamId: string): string[] {
+  const ids = [teamId];
+  const m = String(teamId || '').match(/^TD4-TEAM-(\d+)$/i);
+  if (m) {
+    const num = parseInt(m[1], 10);
+    if (!isNaN(num)) {
+      if (num > 100) ids.push(`TD4-TEAM-${String(num - 100).padStart(2, '0')}`);
+      else ids.push(`TD4-TEAM-${num + 100}`);
+    }
+  }
+  return Array.from(new Set(ids));
+}
+
 // PATCH /api/admin/payments/:teamId - Verify or reject payment
 app.patch('/api/admin/payments/:teamId', async (req, res) => {
   try {
@@ -370,20 +388,23 @@ app.patch('/api/admin/payments/:teamId', async (req, res) => {
       return res.status(400).json({ error: 'Invalid payment status' });
     }
 
-    await db.update(payments)
-      .set({
-        status,
-        rejectionReason: status === 'REJECTED' ? rejectionReason : null,
-        verifiedAt: status === 'VERIFIED' ? new Date() : null,
-        verifiedBy: verifiedBy || 'Event Admin'
-      })
-      .where(eq(payments.teamId, teamId));
+    const candidateIds = getCandidateTeamIds(teamId);
+    for (const cid of candidateIds) {
+      await db.update(payments)
+        .set({
+          status,
+          rejectionReason: status === 'REJECTED' ? rejectionReason : null,
+          verifiedAt: status === 'VERIFIED' ? new Date() : null,
+          verifiedBy: verifiedBy || 'Event Admin'
+        })
+        .where(eq(payments.teamId, cid));
 
-    await db.update(teams)
-      .set({
-        status: status === 'VERIFIED' ? 'VERIFIED' : (status === 'REJECTED' ? 'REJECTED' : 'PENDING')
-      })
-      .where(eq(teams.id, teamId));
+      await db.update(teams)
+        .set({
+          status: status === 'VERIFIED' ? 'VERIFIED' : (status === 'REJECTED' ? 'REJECTED' : 'PENDING')
+        })
+        .where(eq(teams.id, cid));
+    }
 
     res.json({ success: true, message: `Payment updated to ${status}` });
   } catch (error: any) {
@@ -398,29 +419,20 @@ app.patch('/api/admin/teams/:teamId', async (req, res) => {
     const { teamId } = req.params;
     const { status, notes } = req.body;
 
-    await db.update(teams)
-      .set({
-        status: status || undefined,
-        notes: notes !== undefined ? notes : undefined
-      })
-      .where(eq(teams.id, teamId));
+    const candidateIds = getCandidateTeamIds(teamId);
+    for (const cid of candidateIds) {
+      await db.update(teams)
+        .set({
+          status: status || undefined,
+          notes: notes !== undefined ? notes : undefined
+        })
+        .where(eq(teams.id, cid));
+    }
 
     res.json({ success: true, message: 'Team updated successfully' });
   } catch (error: any) {
     console.error('Team update error:', error);
     res.status(500).json({ error: error.message || 'Failed to update team' });
-  }
-});
-
-// DELETE /api/admin/teams/:teamId - Remove team
-app.delete('/api/admin/teams/:teamId', async (req, res) => {
-  try {
-    const { teamId } = req.params;
-    await db.delete(teams).where(eq(teams.id, teamId));
-    res.json({ success: true, message: 'Team deleted' });
-  } catch (error: any) {
-    console.error('Team delete error:', error);
-    res.status(500).json({ error: error.message || 'Failed to delete team' });
   }
 });
 
@@ -436,6 +448,25 @@ app.delete('/api/admin/teams/clear-all', async (req, res) => {
   } catch (error: any) {
     console.error('Clear all teams error:', error);
     res.status(500).json({ error: error.message || 'Failed to clear registration data' });
+  }
+});
+
+// DELETE /api/admin/teams/:teamId - Permanently remove team, members, and payment from database
+app.delete('/api/admin/teams/:teamId', async (req, res) => {
+  try {
+    const { teamId } = req.params;
+    const candidateIds = getCandidateTeamIds(teamId);
+    await withDbRetry(async () => {
+      for (const cid of candidateIds) {
+        await db.delete(payments).where(eq(payments.teamId, cid));
+        await db.delete(teamMembers).where(eq(teamMembers.teamId, cid));
+        await db.delete(teams).where(eq(teams.id, cid));
+      }
+    });
+    res.json({ success: true, message: 'Team permanently deleted from database' });
+  } catch (error: any) {
+    console.error('Team delete error:', error);
+    res.status(500).json({ error: error.message || 'Failed to delete team' });
   }
 });
 
@@ -960,13 +991,489 @@ app.post('/api/auth/admin-login', async (req, res) => {
 });
 
 // ==========================================
+// 6.5 GALLERY EDITOR & PUBLIC/GALLERY STORAGE APIS
+// ==========================================
+
+const GALLERY_DIR = path.join(__dirname, 'public', 'gallery');
+const GALLERY_MANIFEST_PATH = path.join(GALLERY_DIR, 'manifest.json');
+
+const DEFAULT_GALLERY_SEGMENTS = [
+  {
+    id: 'g-workshop',
+    title: 'Workshop - Debate Unlocked',
+    category: 'WORKSHOP',
+    imageUrl: '',
+    images: [] as string[],
+    caption: 'Faculty Convenor and advisors conducting the pre-tournament workshop on Asian Parliamentary debate structure.',
+    date: '03 September'
+  },
+  {
+    id: 'g-kit',
+    title: 'Official Delegate Kit Distribution',
+    category: 'KIT_DISTRIBUTION',
+    imageUrl: '',
+    images: [] as string[],
+    caption: 'Participating CSE debaters receiving their official tournament badges, folders, and delegate kits.',
+    date: '25 October'
+  },
+  {
+    id: 'g-sessions',
+    title: 'Parliamentary Debate Sessions & Rebuttals',
+    category: 'DEBATE_SESSIONS',
+    imageUrl: '',
+    images: [] as string[],
+    caption: 'Fierce debate sessions, constructive speeches, and sharp Point of Information (POI) exchanges on stage.',
+    date: '26 October'
+  },
+  {
+    id: 'g-judges',
+    title: 'Adjudication Core Evaluation Panel',
+    category: 'JUDGES',
+    imageUrl: '',
+    images: [] as string[],
+    caption: 'Distinguished faculty adjudicators deliberating on speaker marks and motion interpretations.',
+    date: 'October 2026'
+  },
+  {
+    id: 'g-final',
+    title: 'Grand Final Showdown on Stage',
+    category: 'FINAL_EVENT',
+    imageUrl: '',
+    images: [] as string[],
+    caption: 'Grand final clash in the central auditorium packed with CSE faculty and students.',
+    date: 'Upcoming'
+  },
+  {
+    id: 'g-awards',
+    title: 'Championship Trophy & Award Ceremony',
+    category: 'AWARDS',
+    imageUrl: '',
+    images: [] as string[],
+    caption: 'Official conferral of Champion, Runners-Up, Emerging Team, and Best Tournament Debater awards.',
+    date: 'Upcoming'
+  }
+];
+
+function ensureGalleryDirectory() {
+  try {
+    if (!fs.existsSync(GALLERY_DIR)) {
+      fs.mkdirSync(GALLERY_DIR, { recursive: true });
+    }
+  } catch (err) {
+    console.error('Failed to create public/gallery directory:', err);
+  }
+}
+
+async function loadGallerySegments(): Promise<any[]> {
+  ensureGalleryDirectory();
+  let savedSegments: any[] | null = null;
+
+  try {
+    if (fs.existsSync(GALLERY_MANIFEST_PATH)) {
+      const raw = fs.readFileSync(GALLERY_MANIFEST_PATH, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        savedSegments = parsed;
+      }
+    }
+  } catch (err) {
+    console.warn('Could not read public/gallery/manifest.json:', err);
+  }
+
+  if (!savedSegments) {
+    try {
+      const fromDb = await getSetting('gallery_segments_v1', '');
+      if (fromDb) {
+        const parsed = JSON.parse(fromDb);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          savedSegments = parsed;
+        }
+      }
+    } catch {}
+  }
+
+  // Discover any .png, .jpg, .jpeg files present in public/gallery
+  let diskFiles: string[] = [];
+  try {
+    diskFiles = fs
+      .readdirSync(GALLERY_DIR)
+      .filter((f) => /\.(png|jpe?g)$/i.test(f))
+      .sort();
+  } catch {}
+
+  const diskUrlSet = new Set(diskFiles.map((f) => `/gallery/${f}`));
+
+  const merged = DEFAULT_GALLERY_SEGMENTS.map((def) => {
+    const existing = savedSegments?.find((s) => s.category === def.category) || def;
+    const rawImages: string[] = Array.isArray(existing.images)
+      ? existing.images
+      : existing.imageUrl
+      ? [existing.imageUrl]
+      : [];
+
+    // Keep valid images that exist in public/gallery (or valid data/http URLs if any, excluding old unsplash placeholders)
+    const validImages = rawImages.filter((url) => {
+      if (!url || typeof url !== 'string') return false;
+      if (url.includes('images.unsplash.com')) return false;
+      if (url.startsWith('/gallery/')) {
+        return diskUrlSet.has(url);
+      }
+      return true;
+    });
+
+    // Also auto-attach any disk file in public/gallery whose filename starts with `<category>-` or `<category>_`
+    const catPrefix = def.category.toLowerCase();
+    for (const file of diskFiles) {
+      const lower = file.toLowerCase();
+      if (lower.startsWith(`${catPrefix}-`) || lower.startsWith(`${catPrefix}_`)) {
+        const fileUrl = `/gallery/${file}`;
+        if (!validImages.includes(fileUrl)) {
+          validImages.push(fileUrl);
+        }
+      }
+    }
+
+    return {
+      id: existing.id || def.id,
+      title: existing.title || def.title,
+      category: def.category,
+      caption: existing.caption || def.caption,
+      date: existing.date || def.date,
+      images: validImages,
+      imageUrl: validImages[0] || '',
+    };
+  });
+
+  return merged;
+}
+
+async function saveGallerySegments(segments: any[]) {
+  ensureGalleryDirectory();
+  try {
+    fs.writeFileSync(GALLERY_MANIFEST_PATH, JSON.stringify(segments, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Failed to write public/gallery/manifest.json:', err);
+  }
+  await setSetting('gallery_segments_v1', JSON.stringify(segments));
+}
+
+// GET /api/gallery - Retrieve all 6 gallery segments and their uploaded pictures
+app.get('/api/gallery', async (req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    const segments = await loadGallerySegments();
+    res.json(segments);
+  } catch (error: any) {
+    console.error('Error loading gallery:', error);
+    res.status(500).json({ error: error.message || 'Failed to load gallery' });
+  }
+});
+
+// POST /api/admin/gallery/upload - Upload one or multiple (.png, .jpg, .jpeg) pictures to public/gallery
+app.post('/api/admin/gallery/upload', async (req, res) => {
+  try {
+    ensureGalleryDirectory();
+    const { category, files } = req.body;
+
+    if (!category || !Array.isArray(files) || files.length === 0) {
+      return res.status(400).json({ error: 'Category and at least one image file are required' });
+    }
+
+    const safeCategory = String(category)
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, '');
+
+    const savedUrls: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const item = files[i];
+      const dataUrl = String(item?.dataUrl || '');
+      const originalName = String(item?.fileName || `photo-${i + 1}.jpg`);
+
+      const match = dataUrl.match(/^data:image\/(png|jpe?g);base64,(.+)$/i);
+      if (!match) {
+        return res.status(400).json({
+          error: `Unsupported image format for "${originalName}". Only PNG, JPG, and JPEG formats are allowed.`,
+        });
+      }
+
+      const mimeSubtype = match[1].toLowerCase();
+      const base64Data = match[2];
+
+      // Preserve .png, .jpg, or .jpeg extension from original filename if valid
+      const origExtMatch = originalName.match(/\.(png|jpg|jpeg)$/i);
+      const ext = origExtMatch
+        ? origExtMatch[1].toLowerCase()
+        : mimeSubtype === 'png'
+        ? 'png'
+        : 'jpg';
+
+      const baseSlug = originalName
+        .replace(/\.(png|jpg|jpeg)$/i, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 32) || 'photo';
+
+      const uniqueFileName = `${safeCategory}-${Date.now()}-${i + 1}-${baseSlug}.${ext}`;
+      const filePath = path.join(GALLERY_DIR, uniqueFileName);
+
+      const buffer = Buffer.from(base64Data, 'base64');
+      fs.writeFileSync(filePath, buffer);
+
+      savedUrls.push(`/gallery/${uniqueFileName}`);
+    }
+
+    // Automatically append uploaded URLs to the segment and persist manifest
+    const segments = await loadGallerySegments();
+    const updatedSegments = segments.map((seg) => {
+      if (seg.category !== category) return seg;
+      const nextImages = Array.from(new Set([...(seg.images || []), ...savedUrls]));
+      return {
+        ...seg,
+        images: nextImages,
+        imageUrl: nextImages[0] || '',
+      };
+    });
+
+    await saveGallerySegments(updatedSegments);
+
+    res.status(201).json({
+      success: true,
+      urls: savedUrls,
+      segments: updatedSegments,
+      message: `Saved ${savedUrls.length} picture(s) to public/gallery`,
+    });
+  } catch (error: any) {
+    console.error('Gallery upload error:', error);
+    res.status(500).json({ error: error.message || 'Failed to upload gallery pictures' });
+  }
+});
+
+// PUT /api/admin/gallery - Save gallery segments (titles, captions, dates, ordered images)
+app.put('/api/admin/gallery', async (req, res) => {
+  try {
+    const { segments } = req.body;
+    if (!Array.isArray(segments)) {
+      return res.status(400).json({ error: 'Segments array is required' });
+    }
+    await saveGallerySegments(segments);
+    res.json({ success: true, segments });
+  } catch (error: any) {
+    console.error('Gallery update error:', error);
+    res.status(500).json({ error: error.message || 'Failed to save gallery segments' });
+  }
+});
+
+// DELETE /api/admin/gallery/file - Remove a specific picture from a segment and delete from public/gallery
+app.delete('/api/admin/gallery/file', async (req, res) => {
+  try {
+    const { category, imageUrl } = req.body;
+    if (typeof imageUrl === 'string' && imageUrl.startsWith('/gallery/')) {
+      const fileName = path.basename(imageUrl);
+      const targetPath = path.join(GALLERY_DIR, fileName);
+      if (fs.existsSync(targetPath)) {
+        fs.unlinkSync(targetPath);
+      }
+    }
+
+    const segments = await loadGallerySegments();
+    const updatedSegments = segments.map((seg) => {
+      if (category && seg.category !== category) return seg;
+      const nextImages = (seg.images || []).filter((u: string) => u !== imageUrl);
+      return {
+        ...seg,
+        images: nextImages,
+        imageUrl: nextImages[0] || '',
+      };
+    });
+
+    await saveGallerySegments(updatedSegments);
+    res.json({ success: true, segments: updatedSegments });
+  } catch (error: any) {
+    console.error('Gallery file delete error:', error);
+    res.status(500).json({ error: error.message || 'Failed to delete gallery image' });
+  }
+});
+
+// ==========================================
+// 6.6 OFFICIAL RULEBOOK & CODE OF CONDUCT PDF DOWNLOAD API
+// ==========================================
+
+const PUBLIC_DIR = path.join(__dirname, 'public');
+const DEFAULT_RULEBOOK_PATH = path.join(PUBLIC_DIR, 'rulebook.pdf');
+const DEFAULT_CONDUCT_PATH = path.join(PUBLIC_DIR, 'code-of-conduct.pdf');
+
+function buildPdfBufferFromLines(lines: string[]): Buffer {
+  const textOps = lines
+    .map((line, idx) => {
+      const safe = line.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+      const y = 740 - idx * 24;
+      const font = idx === 0 ? '/F1 14 Tf' : idx < 3 ? '/F1 11 Tf' : '/F1 10 Tf';
+      return `BT ${font} 50 ${y} Td (${safe}) Tj ET`;
+    })
+    .join('\n');
+
+  const objects: string[] = [
+    '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+    '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+    '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n',
+    '4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+    `5 0 obj\n<< /Length ${Buffer.byteLength(textOps, 'utf-8')} >>\nstream\n${textOps}\nendstream\nendobj\n`,
+  ];
+
+  let pdf = '%PDF-1.4\n';
+  const offsets: number[] = [0];
+  for (const obj of objects) {
+    offsets.push(Buffer.byteLength(pdf, 'utf-8'));
+    pdf += obj;
+  }
+  const xrefStart = Buffer.byteLength(pdf, 'utf-8');
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (let i = 1; i < offsets.length; i++) {
+    pdf += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
+  }
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF\n`;
+  return Buffer.from(pdf, 'utf-8');
+}
+
+function buildMinimalRulebookPdfBuffer(): Buffer {
+  return buildPdfBufferFromLines([
+    'TECH DEBATE 4.0 - PARLIAMENTARY DEBATE RULES & ADJUDICATION GUIDELINES',
+    'Department of Computer Science & Engineering (CSE)',
+    'Varendra University, Rajshahi',
+    '------------------------------------------------------------',
+    '1. FORMAT: Asian Parliamentary (3 vs 3) - Government vs Opposition',
+    '2. SQUAD: 3 Active Speakers per Team (CSE Undergraduates)',
+    '3. SUBSTANTIVE SPEECHES (4 MINUTES):',
+    '   - 0:00 to 1:00 : Protected Time (No POIs)',
+    '   - 1:00 Minute  : Single Bell (Floor Open for POIs)',
+    '   - 3:00 Minutes : Single Bell (1-Min Warning / POIs Closed)',
+    '   - 4:00 Minutes : Double Bell (Time Limit / 20s Grace Period)',
+    '   - 4:20+ Minutes: Continuous Bell (Overtime Penalty)',
+    '4. REPLY SPEECHES (3 MINUTES - 1st or 2nd Speaker Only, No POIs):',
+    '   - 2:00 Minutes : Single Bell (1-Min Warning Bell)',
+    '   - 3:00 Minutes : Double Bell (Time Limit / 20s Grace Period)',
+    '   - 3:20+ Minutes: Continuous Bell (Overtime Penalty)',
+    '5. ADJUDICATION RUBRIC: Matter (40%), Manner (40%), Method (20%)',
+  ]);
+}
+
+function buildMinimalConductPdfBuffer(): Buffer {
+  return buildPdfBufferFromLines([
+    'TECH DEBATE 4.0 - OFFICIAL CODE OF CONDUCT & TOURNAMENT RULES',
+    'Department of Computer Science & Engineering (CSE)',
+    'Varendra University, Rajshahi',
+    '------------------------------------------------------------',
+    '1. ELIGIBILITY: Open exclusively to enrolled CSE students of Varendra University.',
+    '2. PUNCTUALITY & REPORTING: Teams must report 20 minutes before scheduled rounds.',
+    '3. ACADEMIC INTEGRITY & FAIR PLAY:',
+    '   - Fabricating citations or statistics is strictly prohibited.',
+    '   - Use of AI/internet devices during preparation or debate rounds is forbidden.',
+    '4. DECORUM & EQUITY POLICY:',
+    '   - Personal attacks, harassment, or discriminatory language leads to disqualification.',
+    '   - Respectful parliamentary language must be maintained toward opponents and judges.',
+    '5. DRESS CODE: Formal or smart academic attire is required on stage.',
+    '6. ADJUDICATION FINALITY: Decisions of the Adjudication Core and Chief Adjudicator are final.',
+  ]);
+}
+
+function ensureDefaultRulebookPdf() {
+  try {
+    if (!fs.existsSync(PUBLIC_DIR)) {
+      fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(DEFAULT_RULEBOOK_PATH)) {
+      fs.writeFileSync(DEFAULT_RULEBOOK_PATH, buildMinimalRulebookPdfBuffer());
+    }
+    if (!fs.existsSync(DEFAULT_CONDUCT_PATH)) {
+      fs.writeFileSync(DEFAULT_CONDUCT_PATH, buildMinimalConductPdfBuffer());
+    }
+  } catch (err) {
+    console.error('Failed to ensure default rulebook PDFs:', err);
+  }
+}
+
+function resolveDocumentPdfPath(docType: 'parliamentary' | 'conduct'): {
+  filePath: string;
+  downloadName: string;
+} {
+  ensureDefaultRulebookPdf();
+  try {
+    if (docType === 'conduct') {
+      const candidates = ['code-of-conduct.pdf', 'tournament-rules.pdf', 'conduct.pdf'];
+      for (const name of candidates) {
+        const full = path.join(PUBLIC_DIR, name);
+        if (fs.existsSync(full)) {
+          return {
+            filePath: full,
+            downloadName: 'Tech-Debate-4.0-Code-of-Conduct-Tournament-Rules.pdf',
+          };
+        }
+      }
+      return {
+        filePath: DEFAULT_CONDUCT_PATH,
+        downloadName: 'Tech-Debate-4.0-Code-of-Conduct-Tournament-Rules.pdf',
+      };
+    } else {
+      const candidates = ['parliamentary-rules.pdf', 'rulebook.pdf'];
+      for (const name of candidates) {
+        const full = path.join(PUBLIC_DIR, name);
+        if (fs.existsSync(full)) {
+          return {
+            filePath: full,
+            downloadName: 'Tech-Debate-4.0-Parliamentary-Debate-Rules-Adjudication-Guidelines.pdf',
+          };
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Error scanning public/ for PDF:', err);
+  }
+  return {
+    filePath: DEFAULT_RULEBOOK_PATH,
+    downloadName: 'Tech-Debate-4.0-Parliamentary-Debate-Rules-Adjudication-Guidelines.pdf',
+  };
+}
+
+app.get('/api/rulebook/download', (req, res) => {
+  try {
+    const rawType = String(req.query.type || 'parliamentary').toLowerCase();
+    const docType: 'parliamentary' | 'conduct' =
+      rawType === 'conduct' || rawType === 'code-of-conduct' ? 'conduct' : 'parliamentary';
+    const { filePath, downloadName } = resolveDocumentPdfPath(docType);
+    if (fs.existsSync(filePath)) {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${downloadName}"`
+      );
+      return res.sendFile(filePath);
+    }
+    const fallbackBuf =
+      docType === 'conduct' ? buildMinimalConductPdfBuffer() : buildMinimalRulebookPdfBuffer();
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${downloadName}"`
+    );
+    return res.send(fallbackBuf);
+  } catch (error: any) {
+    console.error('Rulebook download error:', error);
+    res.status(500).json({ error: 'Failed to download PDF' });
+  }
+});
+
+// ==========================================
 // 7. VITE DEV SERVER / STATIC SERVING
 // ==========================================
 
 async function startServer() {
+  ensureGalleryDirectory();
+  ensureDefaultRulebookPdf();
   await ensureAdminAccounts();
 
-  // Serve static public assets
+  // Serve static public assets (including /gallery/* from public/gallery and any PDF in public/)
   app.use(express.static(path.join(__dirname, 'public')));
 
   if (process.env.NODE_ENV !== 'production') {

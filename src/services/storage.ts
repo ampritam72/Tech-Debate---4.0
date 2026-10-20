@@ -20,11 +20,12 @@ import {
 const STORAGE_KEYS = {
   TEAMS: 'tech_debate_teams_v2',
   UNSYNCED_TEAMS: 'tech_debate_unsynced_teams_v1',
+  DELETED_TEAMS: 'tech_debate_deleted_team_ids_v1',
   FIXTURES: 'tech_debate_fixtures_v2',
   HALL_OF_FAME: 'tech_debate_hof_v2',
   NOTICES: 'tech_debate_notices_v2',
   SCHEDULE: 'tech_debate_schedule_v2',
-  GALLERY: 'tech_debate_gallery_v2',
+  GALLERY: 'tech_debate_gallery_v3',
   COMMITTEE: 'tech_debate_committee_v3',
   INQUIRIES: 'tech_debate_inquiries_v1',
   GOOGLE_SHEET_WEBHOOK: 'tech_debate_gsheet_webhook_v1',
@@ -53,6 +54,33 @@ export const StorageService = {
   saveTeams: (teams: Team[]) => safeSet(STORAGE_KEYS.TEAMS, teams),
   getUnsyncedTeams: (): Team[] => safeGet(STORAGE_KEYS.UNSYNCED_TEAMS, []),
   saveUnsyncedTeams: (teams: Team[]) => safeSet(STORAGE_KEYS.UNSYNCED_TEAMS, teams),
+  getDeletedTeamIds: (): string[] => safeGet(STORAGE_KEYS.DELETED_TEAMS, []),
+  addDeletedTeamId: (teamId: string) => {
+    const current = new Set(safeGet<string[]>(STORAGE_KEYS.DELETED_TEAMS, []));
+    current.add(teamId);
+    const m = String(teamId || '').match(/^TD4-TEAM-(\d+)$/i);
+    if (m) {
+      const num = parseInt(m[1], 10);
+      if (!isNaN(num)) {
+        if (num > 100) current.add(`TD4-TEAM-${String(num - 100).padStart(2, '0')}`);
+        else current.add(`TD4-TEAM-${num + 100}`);
+      }
+    }
+    safeSet(STORAGE_KEYS.DELETED_TEAMS, Array.from(current));
+  },
+  removeDeletedTeamId: (teamId: string) => {
+    const current = new Set(safeGet<string[]>(STORAGE_KEYS.DELETED_TEAMS, []));
+    current.delete(teamId);
+    const m = String(teamId || '').match(/^TD4-TEAM-(\d+)$/i);
+    if (m) {
+      const num = parseInt(m[1], 10);
+      if (!isNaN(num)) {
+        if (num > 100) current.delete(`TD4-TEAM-${String(num - 100).padStart(2, '0')}`);
+        else current.delete(`TD4-TEAM-${num + 100}`);
+      }
+    }
+    safeSet(STORAGE_KEYS.DELETED_TEAMS, Array.from(current));
+  },
   clearTeams: () => {
     try {
       localStorage.removeItem(STORAGE_KEYS.TEAMS);

@@ -17,7 +17,7 @@ export const RulesAndScheduleSection: React.FC<RulesAndScheduleProps> = ({
       icon: Users,
     },
     {
-      title: 'Team of 2/3 Speakers',
+      title: 'Teams of 3 Speakers',
       icon: Users,
     },
     {

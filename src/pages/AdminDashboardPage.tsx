@@ -3,7 +3,6 @@ import {
   Users, 
   CreditCard, 
   Trophy, 
-  FileText, 
   Calendar, 
   CheckCircle2, 
   Search, 
@@ -14,11 +13,13 @@ import {
   RotateCcw,
   Crown,
   FileSpreadsheet,
-  MessageSquare
+  MessageSquare,
+  Image as ImageIcon
 } from 'lucide-react';
 import { GlassCard } from '../components/common/GlassCard';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { GoogleSheetBackupSection } from '../components/admin/GoogleSheetBackupSection';
+import { GalleryEditorSection } from '../components/admin/GalleryEditorSection';
 import { useTournament } from '../context/TournamentContext';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { MatchFixture, RoundKey } from '../types';
@@ -27,8 +28,6 @@ export const AdminDashboardPage: React.FC = () => {
   const { 
     teams, 
     fixtures, 
-    notices, 
-    schedule, 
     hallOfFame,
     inquiries,
     updatePaymentStatus, 
@@ -36,9 +35,6 @@ export const AdminDashboardPage: React.FC = () => {
     updateFixture,
     createFixture,
     deleteFixture,
-    addNotice,
-    deleteNotice,
-    updateScheduleItem,
     updateHallOfFame4,
     updateInquiryStatus,
     deleteInquiry,
@@ -48,7 +44,7 @@ export const AdminDashboardPage: React.FC = () => {
 
   const { adminUser, logout } = useAdminAuth();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'teams' | 'payments' | 'fixtures' | 'googlesheet' | 'content' | 'inquiries' | 'hof'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'teams' | 'payments' | 'fixtures' | 'googlesheet' | 'gallery' | 'inquiries' | 'hof'>('overview');
 
   // Search & filter for Teams
   const [teamSearch, setTeamSearch] = useState('');
@@ -62,19 +58,23 @@ export const AdminDashboardPage: React.FC = () => {
 
   // Modal / Editing states
   const [editingFixture, setEditingFixture] = useState<MatchFixture | null>(null);
-  const [newNoticeTitle, setNewNoticeTitle] = useState('');
-  const [newNoticeContent, setNewNoticeContent] = useState('');
-  const [newNoticeCategory, setNewNoticeCategory] = useState<'ANNOUNCEMENT' | 'RULES' | 'FIXTURE' | 'URGENT'>('ANNOUNCEMENT');
-  const [newNoticePinned, setNewNoticePinned] = useState(false);
 
   // Hall of Fame 4.0 editing state
   const current4 = hallOfFame.find(h => h.edition === '4.0') || hallOfFame[3];
   const [hof4ChampionTeam, setHof4ChampionTeam] = useState(current4.champion.teamName);
   const [hof4ChampionMembers, setHof4ChampionMembers] = useState(current4.champion.members.join(', '));
+  const [hof4ChampionPhoto, setHof4ChampionPhoto] = useState(current4.champion.photoUrl || '');
   const [hof4RunnerUpTeam, setHof4RunnerUpTeam] = useState(current4.runnerUp.teamName);
   const [hof4RunnerUpMembers, setHof4RunnerUpMembers] = useState(current4.runnerUp.members.join(', '));
+  const [hof4RunnerUpPhoto, setHof4RunnerUpPhoto] = useState(current4.runnerUp.photoUrl || '');
+  const [hof4EmergingTeam, setHof4EmergingTeam] = useState(current4.emergingTeam?.teamName || 'Emerging Team TBD');
+  const [hof4EmergingMembers, setHof4EmergingMembers] = useState(
+    (current4.emergingTeam?.members || ['Rising Debaters Award', 'Breakout Performance', 'VU Central Auditorium']).join(', ')
+  );
+  const [hof4EmergingPhoto, setHof4EmergingPhoto] = useState(current4.emergingTeam?.photoUrl || '');
   const [hof4BestDebaterName, setHof4BestDebaterName] = useState(current4.bestTournamentDebater.name);
   const [hof4BestDebaterId, setHof4BestDebaterId] = useState(current4.bestTournamentDebater.studentId);
+  const [hof4BestDebaterPhoto, setHof4BestDebaterPhoto] = useState(current4.bestTournamentDebater.photoUrl || '');
   const [hofSavedMessage, setHofSavedMessage] = useState(false);
 
   // Compute Metrics
@@ -178,6 +178,38 @@ export const AdminDashboardPage: React.FC = () => {
     setTimeout(() => setClearSuccessToast(null), 4000);
   };
 
+  const handleHofImageFile = (
+    setter: React.Dispatch<React.SetStateAction<string>>,
+    file?: File | null
+  ) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxWidth = 900;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          setter(canvas.toDataURL('image/jpeg', 0.82));
+        } else {
+          setter(String(ev.target?.result || ''));
+        }
+      };
+      img.src = String(ev.target?.result || '');
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSaveHOF4 = async (e: React.FormEvent) => {
     e.preventDefault();
     await updateHallOfFame4({
@@ -185,18 +217,27 @@ export const AdminDashboardPage: React.FC = () => {
       champion: {
         teamName: hof4ChampionTeam,
         batch: '2026 Champions',
-        members: hof4ChampionMembers.split(',').map(m => m.trim())
+        members: hof4ChampionMembers.split(',').map(m => m.trim()),
+        photoUrl: hof4ChampionPhoto,
       },
       runnerUp: {
         teamName: hof4RunnerUpTeam,
         batch: '2026 Finalists',
-        members: hof4RunnerUpMembers.split(',').map(m => m.trim())
+        members: hof4RunnerUpMembers.split(',').map(m => m.trim()),
+        photoUrl: hof4RunnerUpPhoto,
+      },
+      emergingTeam: {
+        teamName: hof4EmergingTeam,
+        batch: '2026 Rising Star',
+        members: hof4EmergingMembers.split(',').map(m => m.trim()),
+        photoUrl: hof4EmergingPhoto,
       },
       bestTournamentDebater: {
         name: hof4BestDebaterName,
         batch: 'CSE Department',
         studentId: hof4BestDebaterId,
-        achievement: 'Conferred Best Tournament Debater of Tech Debate 4.0.'
+        achievement: 'Conferred Best Tournament Debater of Tech Debate 4.0.',
+        photoUrl: hof4BestDebaterPhoto,
       }
     });
     setHofSavedMessage(true);
@@ -277,7 +318,7 @@ export const AdminDashboardPage: React.FC = () => {
           { id: 'payments', label: `Payments (${pendingPayments} Pending)`, icon: CreditCard },
           { id: 'fixtures', label: `Tournament Bracket (${fixtures.length})`, icon: Calendar },
           { id: 'googlesheet', label: 'Google Sheets Backup', icon: FileSpreadsheet },
-          { id: 'content', label: `Notices & Schedule`, icon: FileText },
+          { id: 'gallery', label: 'Gallery Editor', icon: ImageIcon },
           { id: 'inquiries', label: `Helpdesk (${inquiries.filter(i => i.status === 'NEW').length} New)`, icon: MessageSquare },
           { id: 'hof', label: `Publish TD 4.0 Hall of Fame`, icon: Crown },
         ].map(tab => {
@@ -457,67 +498,82 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#090f23]/60 shadow-xs">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-slate-950/80 font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
-                <tr>
-                  <th className="py-3 px-4">Squad ID & Name</th>
-                  <th className="py-3 px-4">Batch</th>
-                  <th className="py-3 px-4">Debaters (1, 2, 3)</th>
-                  <th className="py-3 px-4">MFS Fee</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 text-slate-700 dark:text-slate-300">
-                {filteredTeams.map(team => (
-                  <tr key={team.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
-                    <td className="py-3.5 px-4">
-                      <span className="font-mono text-cyan-600 dark:text-cyan-400 font-semibold block">{team.id}</span>
-                      <span className="font-bold text-slate-900 dark:text-white text-sm">{team.name}</span>
-                    </td>
-                    <td className="py-3.5 px-4 font-mono">
-                      {team.batch}
-                    </td>
-                    <td className="py-3.5 px-4 space-y-1">
-                      {team.members.map((m) => (
-                        <div key={m.id} className="text-[11px]">
-                          <span className="text-slate-900 dark:text-white font-medium">{m.fullName}</span>{' '}
-                          <span className="font-mono text-cyan-600 dark:text-cyan-400 font-semibold">({m.studentId} • {m.batch || team.batch})</span>
-                        </div>
-                      ))}
-                    </td>
-                    <td className="py-3.5 px-4 font-mono">
-                      <div className="font-semibold text-slate-900 dark:text-white">{team.payment.method} • BDT {team.payment.amount || 350}</div>
-                      <div className="text-slate-500 text-[11px]">{team.payment.transactionId}</div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <StatusBadge status={team.status} type="team" />
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {team.status !== 'VERIFIED' && (
-                          <button
-                            onClick={() => updatePaymentStatus(team.id, 'VERIFIED')}
-                            className="px-2 py-1 text-[11px] font-mono text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800/60 rounded hover:bg-emerald-200 cursor-pointer font-bold"
-                          >
-                            Verify
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setTeamToDelete({ id: team.id, name: team.name })}
-                          className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
-                          title="Delete team"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+          {/* Mobile & Web Table with Horizontal & Vertical Sliders */}
+          <div className="rounded-2xl border border-slate-800/90 bg-[#070d1f]/95 shadow-2xl overflow-hidden">
+            <div className="overflow-x-auto overflow-y-auto max-h-[62vh] sm:max-h-[72vh] admin-table-scroll overscroll-contain touch-pan-x touch-pan-y">
+              <table className="w-full min-w-[920px] text-left text-xs border-collapse">
+                <thead className="sticky top-0 z-10 bg-[#050a18] font-mono text-[11px] text-slate-400 uppercase tracking-wider border-b border-slate-800/90">
+                  <tr>
+                    <th className="py-3.5 px-5 whitespace-nowrap">Squad ID &amp; Name</th>
+                    <th className="py-3.5 px-5 whitespace-nowrap">Batch</th>
+                    <th className="py-3.5 px-5 whitespace-nowrap">Debaters (1, 2, 3)</th>
+                    <th className="py-3.5 px-5 whitespace-nowrap">MFS Fee</th>
+                    <th className="py-3.5 px-5 whitespace-nowrap">Status</th>
+                    <th className="py-3.5 px-5 text-right whitespace-nowrap">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-800/70 text-slate-300">
+                  {filteredTeams.map((team) => (
+                    <tr
+                      key={team.id}
+                      className="hover:bg-slate-900/50 transition-colors"
+                    >
+                      <td className="py-4 px-5 whitespace-nowrap align-middle">
+                        <span className="font-mono text-cyan-400 font-semibold text-xs block">
+                          {team.id}
+                        </span>
+                        <span className="font-bold text-white text-sm block mt-0.5">
+                          {team.name}
+                        </span>
+                      </td>
+                      <td className="py-4 px-5 font-mono text-xs text-slate-300 whitespace-nowrap align-middle">
+                        {team.batch}
+                      </td>
+                      <td className="py-4 px-5 space-y-1.5 whitespace-nowrap align-middle">
+                        {team.members.map((m, idx) => (
+                          <div key={m.id || idx} className="text-xs leading-snug whitespace-nowrap">
+                            <span className="text-white font-semibold">{m.fullName}</span>{' '}
+                            <span className="font-mono text-cyan-400 font-semibold">
+                              ({m.studentId} • {m.batch || team.batch})
+                            </span>
+                          </div>
+                        ))}
+                      </td>
+                      <td className="py-4 px-5 font-mono whitespace-nowrap align-middle">
+                        <div className="font-bold text-white text-xs">
+                          {team.payment.method} • BDT {team.payment.amount || 350}
+                        </div>
+                        <div className="text-slate-500 text-[11px] mt-0.5">
+                          {team.payment.transactionId}
+                        </div>
+                      </td>
+                      <td className="py-4 px-5 whitespace-nowrap align-middle">
+                        <StatusBadge status={team.status} type="team" />
+                      </td>
+                      <td className="py-4 px-5 text-right whitespace-nowrap align-middle">
+                        <div className="flex items-center justify-end gap-2.5">
+                          {team.status !== 'VERIFIED' && (
+                            <button
+                              onClick={() => updatePaymentStatus(team.id, 'VERIFIED')}
+                              className="px-2.5 py-1 text-[11px] font-mono text-emerald-300 bg-emerald-950/70 border border-emerald-700/70 rounded hover:bg-emerald-900/80 cursor-pointer font-bold transition-colors"
+                            >
+                              Verify
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setTeamToDelete({ id: team.id, name: team.name })}
+                            className="p-1.5 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+                            title="Delete team"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -976,148 +1032,9 @@ export const AdminDashboardPage: React.FC = () => {
         <GoogleSheetBackupSection teams={teams} />
       )}
 
-      {/* 6. CONTENT TAB */}
-      {activeTab === 'content' && (
-        <div className="space-y-8">
-          {/* Post Notice Form */}
-          <GlassCard className="p-6" glow>
-            <h3 className="font-display text-lg font-bold text-slate-900 dark:text-white mb-4">
-              Publish Official Tournament Notice
-            </h3>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 uppercase font-semibold">Notice Title</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Grand Final Motion Unveiling & Reporting Times"
-                  value={newNoticeTitle}
-                  onChange={e => setNewNoticeTitle(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 uppercase font-semibold">Category</label>
-                  <select
-                    value={newNoticeCategory}
-                    onChange={e => setNewNoticeCategory(e.target.value as any)}
-                    className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white text-xs"
-                  >
-                    <option value="ANNOUNCEMENT">Announcement</option>
-                    <option value="RULES">Rules</option>
-                    <option value="FIXTURE">Fixture Update</option>
-                    <option value="URGENT">Urgent Protocol</option>
-                  </select>
-                </div>
-
-                <div className="flex items-center gap-2 pt-6">
-                  <input
-                    type="checkbox"
-                    id="pinned"
-                    checked={newNoticePinned}
-                    onChange={e => setNewNoticePinned(e.target.checked)}
-                    className="rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-800 text-cyan-500 focus:ring-cyan-400"
-                  />
-                  <label htmlFor="pinned" className="text-xs text-slate-700 dark:text-slate-300 font-mono font-medium">
-                    Pin notice to top
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 uppercase font-semibold">Notice Content</label>
-                <textarea
-                  rows={3}
-                  placeholder="Enter notice details for participants and delegates..."
-                  value={newNoticeContent}
-                  onChange={e => setNewNoticeContent(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                />
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  onClick={() => {
-                    if (!newNoticeTitle.trim() || !newNoticeContent.trim()) return;
-                    addNotice({
-                      title: newNoticeTitle,
-                      category: newNoticeCategory,
-                      content: newNoticeContent,
-                      isPinned: newNoticePinned
-                    });
-                    setNewNoticeTitle('');
-                    setNewNoticeContent('');
-                  }}
-                  className="px-5 py-2 text-xs font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 rounded-lg font-mono cursor-pointer uppercase tracking-wider"
-                >
-                  Publish Notice
-                </button>
-              </div>
-            </div>
-          </GlassCard>
-
-          {/* Existing Notices List */}
-          <div className="space-y-4">
-            <h4 className="font-display text-base font-bold text-slate-900 dark:text-white">
-              Active Notices ({notices.length})
-            </h4>
-
-            {notices.map(notice => (
-              <div key={notice.id} className="p-4 rounded-xl bg-white dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 flex items-start justify-between gap-4 shadow-xs">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-xs font-mono">
-                    <span className="text-cyan-600 dark:text-cyan-400 font-bold">{notice.category}</span>
-                    {notice.isPinned && <span className="text-amber-500 font-semibold">· Pinned</span>}
-                    <span className="text-slate-400">· {new Date(notice.publishedAt).toLocaleDateString()}</span>
-                  </div>
-                  <h5 className="font-bold text-slate-900 dark:text-white text-sm">{notice.title}</h5>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{notice.content}</p>
-                </div>
-                <button
-                  onClick={() => deleteNotice(notice.id)}
-                  className="p-1.5 text-slate-400 hover:text-rose-500 cursor-pointer"
-                  title="Delete notice"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-
-          {/* Schedule Management */}
-          <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-            <h4 className="font-display text-base font-bold text-slate-900 dark:text-white">
-              Event Schedule Timeline Editor
-            </h4>
-
-            <div className="space-y-3">
-              {schedule.map(item => (
-                <div key={item.id} className="p-4 rounded-xl bg-white dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
-                  <div>
-                    <span className="font-mono text-cyan-600 dark:text-cyan-400 block font-semibold">{item.date} · {item.timeRange}</span>
-                    <strong className="text-slate-900 dark:text-white text-sm">{item.title}</strong>
-                    <div className="text-slate-500 dark:text-slate-400">{item.venue}</div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => updateScheduleItem(item.id, { isCompleted: !item.isCompleted })}
-                      className={`px-3 py-1.5 rounded font-mono text-[11px] border cursor-pointer font-semibold ${
-                        item.isCompleted
-                          ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
-                          : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'
-                      }`}
-                    >
-                      {item.isCompleted ? '✓ Completed' : 'Mark Completed'}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+      {/* 6. GALLERY EDITOR TAB */}
+      {activeTab === 'gallery' && (
+        <GalleryEditorSection />
       )}
 
       {/* 6. HOF 4.0 PUBLISHER TAB */}
@@ -1145,14 +1062,14 @@ export const AdminDashboardPage: React.FC = () => {
           <form onSubmit={handleSaveHOF4} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
-              {/* Champion Squad */}
+              {/* 1. Champion Team */}
               <div className="p-5 rounded-xl bg-amber-50/60 dark:bg-slate-950/80 border border-amber-300 dark:border-amber-500/30 space-y-4">
                 <span className="font-mono text-xs text-amber-700 dark:text-amber-300 font-bold uppercase tracking-wider block">
-                  Champion Squad
+                  1. Champion Team
                 </span>
 
                 <div>
-                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">Squad Name</label>
+                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">Team Name</label>
                   <input
                     type="text"
                     value={hof4ChampionTeam}
@@ -1170,16 +1087,26 @@ export const AdminDashboardPage: React.FC = () => {
                     className="w-full px-3.5 py-2.5 rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white text-xs"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">Champion Picture Upload</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={e => handleHofImageFile(setHof4ChampionPhoto, e.target.files?.[0])}
+                    className="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-mono file:font-bold file:bg-amber-500/20 file:text-amber-300 hover:file:bg-amber-500/30 cursor-pointer"
+                  />
+                </div>
               </div>
 
-              {/* Runner-up Squad */}
+              {/* 2. Runners Up Team */}
               <div className="p-5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700 space-y-4">
-                <span className="font-mono text-xs text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider block">
-                  Runner-up Squad
+                <span className="font-mono text-xs text-slate-700 dark:text-sky-300 font-bold uppercase tracking-wider block">
+                  2. Runners Up Team
                 </span>
 
                 <div>
-                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">Squad Name</label>
+                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">Team Name</label>
                   <input
                     type="text"
                     value={hof4RunnerUpTeam}
@@ -1197,35 +1124,96 @@ export const AdminDashboardPage: React.FC = () => {
                     className="w-full px-3.5 py-2.5 rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white text-xs"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">Runners Up Picture Upload</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={e => handleHofImageFile(setHof4RunnerUpPhoto, e.target.files?.[0])}
+                    className="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-mono file:font-bold file:bg-sky-500/20 file:text-sky-300 hover:file:bg-sky-500/30 cursor-pointer"
+                  />
+                </div>
               </div>
 
-            </div>
+              {/* 3. Emerging Team */}
+              <div className="p-5 rounded-xl bg-emerald-50/60 dark:bg-slate-950/80 border border-emerald-300 dark:border-emerald-500/30 space-y-4">
+                <span className="font-mono text-xs text-emerald-700 dark:text-emerald-300 font-bold uppercase tracking-wider block">
+                  3. Emerging Team
+                </span>
 
-            {/* Individual Honors */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-xs font-mono text-slate-700 dark:text-slate-300 mb-1.5 uppercase font-medium">
-                  Best Tournament Debater Name
-                </label>
-                <input
-                  type="text"
-                  value={hof4BestDebaterName}
-                  onChange={e => setHof4BestDebaterName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm"
-                />
+                <div>
+                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">Team Name</label>
+                  <input
+                    type="text"
+                    value={hof4EmergingTeam}
+                    onChange={e => setHof4EmergingTeam(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">3 Debater Names (Comma separated)</label>
+                  <input
+                    type="text"
+                    value={hof4EmergingMembers}
+                    onChange={e => setHof4EmergingMembers(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">Emerging Team Picture Upload</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={e => handleHofImageFile(setHof4EmergingPhoto, e.target.files?.[0])}
+                    className="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-mono file:font-bold file:bg-emerald-500/20 file:text-emerald-300 hover:file:bg-emerald-500/30 cursor-pointer"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-mono text-slate-700 dark:text-slate-300 mb-1.5 uppercase font-medium">
-                  Best Debater Student ID
-                </label>
-                <input
-                  type="text"
-                  value={hof4BestDebaterId}
-                  onChange={e => setHof4BestDebaterId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm font-mono"
-                />
+              {/* 4. Best Tournament Debater */}
+              <div className="p-5 rounded-xl bg-cyan-50/60 dark:bg-slate-950/80 border border-cyan-300 dark:border-cyan-500/30 space-y-4">
+                <span className="font-mono text-xs text-cyan-700 dark:text-cyan-300 font-bold uppercase tracking-wider block">
+                  4. Best Tournament Debater
+                </span>
+
+                <div>
+                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">
+                    Best Tournament Debater Name
+                  </label>
+                  <input
+                    type="text"
+                    value={hof4BestDebaterName}
+                    onChange={e => setHof4BestDebaterName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">
+                    Best Debater Student ID
+                  </label>
+                  <input
+                    type="text"
+                    value={hof4BestDebaterId}
+                    onChange={e => setHof4BestDebaterId(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">Best Debater Picture Upload</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={e => handleHofImageFile(setHof4BestDebaterPhoto, e.target.files?.[0])}
+                    className="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-mono file:font-bold file:bg-cyan-500/20 file:text-cyan-300 hover:file:bg-cyan-500/30 cursor-pointer"
+                  />
+                </div>
               </div>
+
             </div>
 
             <div className="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-800">

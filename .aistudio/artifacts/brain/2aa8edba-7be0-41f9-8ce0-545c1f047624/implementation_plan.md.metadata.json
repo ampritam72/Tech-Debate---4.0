@@ -1,6 +1,6 @@
 {
-  "summary": "Implementation plan to align the 24/7 Google Apps Script auto-push backup, client CSV export, and live sheet preview with the exact 22-column layout (A1:V1) of the user's Google Sheet.",
-  "updatedAt": "2026-10-18T18:26:31.913507369Z",
+  "summary": "Implementation plan for updating the Official Rulebook & Stage Debate Timer section with two separate PDF download buttons (Parliamentary Debate Rules & Adjudication Guidelines, and Code of Conduct) and transforming the right-side card into an interactive Stage Debate Timer button with a custom generated timer and bell stage illustration.",
+  "updatedAt": "2026-10-20T01:42:39.101481591Z",
   "requestFeedback": true,
   "userFacing": true
 }

@@ -86,6 +86,12 @@ export interface HallOfFameEdition {
     batch: string;
     photoUrl?: string;
   };
+  emergingTeam?: {
+    teamName: string;
+    members: string[];
+    batch: string;
+    photoUrl?: string;
+  };
   bestTournamentDebater: {
     name: string;
     batch: string;
@@ -127,11 +133,21 @@ export interface ScheduleItem {
   isActive: boolean;
 }
 
+export type GalleryCategory =
+  | 'WORKSHOP'
+  | 'KIT_DISTRIBUTION'
+  | 'OPENING'
+  | 'DEBATE_SESSIONS'
+  | 'JUDGES'
+  | 'FINAL_EVENT'
+  | 'AWARDS';
+
 export interface GalleryPhoto {
   id: string;
   title: string;
-  category: 'OPENING' | 'DEBATE_SESSIONS' | 'JUDGES' | 'FINAL_EVENT' | 'AWARDS';
+  category: GalleryCategory;
   imageUrl: string;
+  images?: string[];
   caption: string;
   date: string;
 }

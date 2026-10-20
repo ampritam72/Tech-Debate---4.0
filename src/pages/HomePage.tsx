@@ -6,6 +6,7 @@ import { RegistrationCountdownCard } from '../components/home/RegistrationCountd
 import { TournamentFormat } from '../components/home/TournamentFormat';
 import { KeyInformationSection } from '../components/home/KeyInformationSection';
 import { ImportantDatesSection } from '../components/home/ImportantDatesSection';
+import { RulebookAndTimerSection } from '../components/home/RulebookAndTimerSection';
 import { HallOfFameSection } from '../components/home/HallOfFameSection';
 import { GallerySection } from '../components/home/GallerySection';
 import { CommitteeSection } from '../components/home/CommitteeSection';
@@ -64,6 +65,14 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectTab }) => {
       {/* 7. Important Dates (Interactive Timeline with Glowing Nodes + Protocol Card) */}
       <ImportantDatesSection
         onViewScheduleClick={() => onSelectTab('about')}
+      />
+
+      {/* Subtle Glowing Gradient Divider */}
+      <SectionDivider />
+
+      {/* 8. Official Rulebook Download & Stage Debate Timer Section */}
+      <RulebookAndTimerSection
+        onOpenTimerPage={() => onSelectTab('timer')}
       />
 
       {/* Subtle Glowing Gradient Divider */}

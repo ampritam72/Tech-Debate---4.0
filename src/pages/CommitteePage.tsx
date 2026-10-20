@@ -7,12 +7,12 @@ import {
 } from '../data/committeeMembers';
 import { UserCheck, Shield } from 'lucide-react';
 
-interface CommitteeMemberCardProps {
+export interface CommitteeMemberCardProps {
   member: CommitteeMemberData;
   isTopReserved?: boolean;
 }
 
-const CommitteeMemberCard: React.FC<CommitteeMemberCardProps> = ({ member, isTopReserved }) => {
+export const CommitteeMemberCard: React.FC<CommitteeMemberCardProps> = ({ member, isTopReserved }) => {
   const [candidateIndex, setCandidateIndex] = useState(0);
   const [imgError, setImgError] = useState(false);
 

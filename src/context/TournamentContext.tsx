@@ -81,11 +81,20 @@ interface TournamentContextType {
   createFixture: (fixture: Omit<MatchFixture, 'id'>) => Promise<MatchFixture>;
   deleteFixture: (id: string) => Promise<void>;
 
-  // Content Management
+  // Content & Gallery Management
   addNotice: (notice: Omit<Notice, 'id' | 'publishedAt'>) => Promise<void>;
   deleteNotice: (id: string) => Promise<void>;
   updateScheduleItem: (id: string, updates: Partial<ScheduleItem>) => void;
   addGalleryPhoto: (photo: Omit<GalleryPhoto, 'id' | 'date'>) => void;
+  uploadGalleryPhotos: (
+    category: GalleryPhoto['category'],
+    files: Array<{ fileName: string; dataUrl: string }>
+  ) => Promise<string[]>;
+  updateGallerySegment: (
+    category: GalleryPhoto['category'],
+    updates: Partial<Pick<GalleryPhoto, 'title' | 'caption' | 'date' | 'images' | 'imageUrl'>>
+  ) => Promise<void>;
+  removeGalleryPhoto: (category: GalleryPhoto['category'], imageUrl: string) => Promise<void>;
   updateHallOfFame4: (updates: Partial<HallOfFameEdition>) => Promise<void>;
 
   // Helpdesk Inquiries
@@ -200,7 +209,7 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const initialMigrationDone = useRef(false);
-  const deletedTeamIdsRef = useRef<Set<string>>(new Set());
+  const deletedTeamIdsRef = useRef<Set<string>>(new Set(StorageService.getDeletedTeamIds()));
   const pgTeamsCacheRef = useRef<Team[]>([]);
   const firestoreTeamsCacheRef = useRef<Team[]>([]);
 
@@ -223,7 +232,7 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const refreshFromDatabase = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
     try {
-      const [firestoreResult, pgTeamsResult, pgFixtures, pgNotices, pgHof] = await Promise.all([
+      const [firestoreResult, pgTeamsResult, pgFixtures, pgNotices, pgHof, serverGallery] = await Promise.all([
         getDocs(collection(db, 'teams')).catch((err) => {
           console.warn('Firestore getDocs warning:', err);
           return null;
@@ -232,7 +241,13 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         !initialMigrationDone.current ? ApiService.getFixtures().catch(() => null) : Promise.resolve(null),
         !initialMigrationDone.current ? ApiService.getNotices().catch(() => null) : Promise.resolve(null),
         !initialMigrationDone.current ? ApiService.getHallOfFame().catch(() => null) : Promise.resolve(null),
+        ApiService.getGallery(true).catch(() => null),
       ]);
+
+      if (Array.isArray(serverGallery) && serverGallery.length > 0) {
+        setGallery(serverGallery);
+        StorageService.saveGallery(serverGallery);
+      }
 
       const firestoreTeamsMap = new Map<string, Team>();
       const firestoreNamesSet = new Set<string>();
@@ -240,12 +255,15 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       if (firestoreResult) {
         firestoreResult.forEach((docSnap) => {
-          const t = docSnap.data() as Team;
-          if (t && t.id && !deletedTeamIdsRef.current.has(t.id)) {
-            firestoreTeamsMap.set(t.id, t);
-            if (t.name) firestoreNamesSet.add(t.name.trim().toLowerCase());
-            if (t.payment?.transactionId) {
-              firestoreTrxSet.add(t.payment.transactionId.trim().toUpperCase());
+          const rawData = docSnap.data() as Team;
+          if (rawData && rawData.id) {
+            const t = normalizeTeamObject(rawData);
+            if (!deletedTeamIdsRef.current.has(t.id) && !deletedTeamIdsRef.current.has(rawData.id)) {
+              firestoreTeamsMap.set(t.id, t);
+              if (t.name) firestoreNamesSet.add(t.name.trim().toLowerCase());
+              if (t.payment?.transactionId) {
+                firestoreTrxSet.add(t.payment.transactionId.trim().toUpperCase());
+              }
             }
           }
         });
@@ -253,7 +271,26 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
 
       if (Array.isArray(pgTeamsResult)) {
-        pgTeamsCacheRef.current = pgTeamsResult.filter((t) => t && t.id && !deletedTeamIdsRef.current.has(t.id));
+        // If Firestore loaded successfully, only keep PG teams that still exist in Firestore (so deleted teams never resurrect)
+        pgTeamsCacheRef.current = pgTeamsResult.filter((t) => {
+          if (!t || !t.id) return false;
+          const norm = normalizeTeamObject(t);
+          if (deletedTeamIdsRef.current.has(t.id) || deletedTeamIdsRef.current.has(norm.id)) {
+            ApiService.deleteTeam(t.id).catch(() => {});
+            return false;
+          }
+          if (firestoreResult !== null) {
+            const existsInFs =
+              firestoreTeamsMap.has(norm.id) ||
+              firestoreTeamsMap.has(t.id) ||
+              (t.name && firestoreNamesSet.has(t.name.trim().toLowerCase()));
+            if (!existsInFs) {
+              ApiService.deleteTeam(t.id).catch(() => {});
+              return false;
+            }
+          }
+          return true;
+        });
       }
 
       // Immediately update UI state with merged teams from both databases so counters are instant
@@ -293,23 +330,9 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         StorageService.saveUnsyncedTeams(remainingUnsynced);
       }
 
-      // 3. Synchronize any differences between PostgreSQL and Cloud Firestore
+      // 3. Synchronize any Firestore teams that are missing from PostgreSQL
       if (Array.isArray(pgTeamsResult) && pgTeamsResult.length > 0) {
-        const pgNames = new Set(pgTeamsResult.map((t) => t.name.trim().toLowerCase()));
-
-        for (const pgTeam of pgTeamsResult) {
-          if (deletedTeamIdsRef.current.has(pgTeam.id)) continue;
-          const lowerName = pgTeam.name.trim().toLowerCase();
-          if (!firestoreTeamsMap.has(pgTeam.id) && !firestoreNamesSet.has(lowerName)) {
-            try {
-              await setDoc(doc(db, 'teams', pgTeam.id), sanitizeTeamForFirestore(pgTeam));
-              firestoreTeamsMap.set(pgTeam.id, pgTeam);
-              firestoreNamesSet.add(lowerName);
-            } catch (err) {
-              console.warn('Could not seed PG team to Firestore:', err);
-            }
-          }
-        }
+        const pgNames = new Set(pgTeamsCacheRef.current.map((t) => t.name.trim().toLowerCase()));
 
         for (const fsTeam of firestoreTeamsMap.values()) {
           if (!pgNames.has(fsTeam.name.trim().toLowerCase())) {
@@ -737,6 +760,10 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
 
     ApiService.registerTeam(payload).catch(() => {});
+    // If a new team reuses an ID that was previously deleted, remove it from deleted IDs
+    deletedTeamIdsRef.current.delete(newTeam.id);
+    StorageService.removeDeletedTeamId(newTeam.id);
+
     ApiService.syncTeamToGoogleSheetClient(newTeam).catch(() => {});
 
     firestoreTeamsCacheRef.current = [
@@ -838,17 +865,44 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const deleteTeam = async (teamId: string) => {
-    deletedTeamIdsRef.current.add(teamId);
-    firestoreTeamsCacheRef.current = firestoreTeamsCacheRef.current.filter((t) => t.id !== teamId);
-    pgTeamsCacheRef.current = pgTeamsCacheRef.current.filter((t) => t.id !== teamId);
-    setTeams((prev) => prev.filter((t) => t.id !== teamId));
-    try {
-      await deleteDoc(doc(db, 'teams', teamId));
-    } catch (err) {
-      console.error('Failed to delete team from Cloud Firestore:', err);
-      handleFirestoreError(err, OperationType.DELETE, `teams/${teamId}`);
+    const idsToDelete = new Set<string>([teamId]);
+    const match = String(teamId || '').match(/^TD4-TEAM-(\d+)$/i);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (!isNaN(num)) {
+        if (num > 100) idsToDelete.add(`TD4-TEAM-${String(num - 100).padStart(2, '0')}`);
+        else idsToDelete.add(`TD4-TEAM-${num + 100}`);
+      }
     }
-    ApiService.deleteTeam(teamId).catch(() => {});
+
+    idsToDelete.forEach((id) => {
+      deletedTeamIdsRef.current.add(id);
+      StorageService.addDeletedTeamId(id);
+    });
+
+    firestoreTeamsCacheRef.current = firestoreTeamsCacheRef.current.filter(
+      (t) => !idsToDelete.has(t.id)
+    );
+    pgTeamsCacheRef.current = pgTeamsCacheRef.current.filter((t) => !idsToDelete.has(t.id));
+
+    setTeams((prev) => {
+      const next = prev.filter((t) => !idsToDelete.has(t.id));
+      StorageService.saveTeams(next);
+      return next;
+    });
+
+    const unsynced = StorageService.getUnsyncedTeams().filter((t) => !idsToDelete.has(t.id));
+    StorageService.saveUnsyncedTeams(unsynced);
+
+    for (const id of idsToDelete) {
+      try {
+        await deleteDoc(doc(db, 'teams', id));
+      } catch (err) {
+        console.error(`Failed to delete team ${id} from Cloud Firestore:`, err);
+        handleFirestoreError(err, OperationType.DELETE, `teams/${id}`);
+      }
+      ApiService.deleteTeam(id).catch(() => {});
+    }
   };
 
   const updateFixture = async (id: string, updates: Partial<MatchFixture>) => {
@@ -944,23 +998,144 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const addGalleryPhoto = (photo: Omit<GalleryPhoto, 'id' | 'date'>) => {
-    const newPhoto: GalleryPhoto = {
-      ...photo,
-      id: `g-${Date.now()}`,
-      date: 'October 2026',
-    };
-    setGallery((prev) => [newPhoto, ...prev]);
+    setGallery((prev) => {
+      const existingIdx = prev.findIndex((p) => p.category === photo.category);
+      let next: GalleryPhoto[];
+      if (existingIdx >= 0) {
+        next = prev.map((p, i) => {
+          if (i !== existingIdx) return p;
+          const nextImages = Array.from(
+            new Set([...(p.images || []), ...(photo.images || []), ...(photo.imageUrl ? [photo.imageUrl] : [])])
+          );
+          return {
+            ...p,
+            title: photo.title || p.title,
+            caption: photo.caption || p.caption,
+            images: nextImages,
+            imageUrl: nextImages[0] || '',
+          };
+        });
+      } else {
+        const newPhoto: GalleryPhoto = {
+          ...photo,
+          id: `g-${Date.now()}`,
+          date: 'October 2026',
+          images: photo.images || (photo.imageUrl ? [photo.imageUrl] : []),
+        };
+        next = [newPhoto, ...prev];
+      }
+      StorageService.saveGallery(next);
+      ApiService.saveGallerySegments(next).catch(() => {});
+      return next;
+    });
+  };
+
+  const uploadGalleryPhotos = async (
+    category: GalleryPhoto['category'],
+    files: Array<{ fileName: string; dataUrl: string }>
+  ): Promise<string[]> => {
+    try {
+      const res = await ApiService.uploadGalleryImages(category, files);
+      if (Array.isArray(res.segments) && res.segments.length > 0) {
+        setGallery(res.segments);
+        StorageService.saveGallery(res.segments);
+      }
+      return res.urls || [];
+    } catch (err) {
+      // Fallback if running in static environment: store dataUrls in gallery state
+      const fallbackUrls = files.map((f) => f.dataUrl).filter(Boolean);
+      setGallery((prev) => {
+        const next = prev.map((seg) => {
+          if (seg.category !== category) return seg;
+          const nextImages = [...(seg.images || []), ...fallbackUrls];
+          return {
+            ...seg,
+            images: nextImages,
+            imageUrl: nextImages[0] || '',
+          };
+        });
+        StorageService.saveGallery(next);
+        return next;
+      });
+      return fallbackUrls;
+    }
+  };
+
+  const updateGallerySegment = async (
+    category: GalleryPhoto['category'],
+    updates: Partial<Pick<GalleryPhoto, 'title' | 'caption' | 'date' | 'images' | 'imageUrl'>>
+  ): Promise<void> => {
+    let nextSegments: GalleryPhoto[] = [];
+    setGallery((prev) => {
+      nextSegments = prev.map((seg) => {
+        if (seg.category !== category) return seg;
+        const nextImages =
+          updates.images !== undefined
+            ? updates.images
+            : seg.images || (seg.imageUrl ? [seg.imageUrl] : []);
+        return {
+          ...seg,
+          ...updates,
+          images: nextImages,
+          imageUrl: updates.imageUrl !== undefined ? updates.imageUrl : nextImages[0] || '',
+        };
+      });
+      StorageService.saveGallery(nextSegments);
+      return nextSegments;
+    });
+
+    try {
+      const res = await ApiService.saveGallerySegments(nextSegments);
+      if (Array.isArray(res.segments) && res.segments.length > 0) {
+        setGallery(res.segments);
+        StorageService.saveGallery(res.segments);
+      }
+    } catch (err) {
+      console.warn('Could not sync gallery segments to backend, saved locally:', err);
+    }
+  };
+
+  const removeGalleryPhoto = async (
+    category: GalleryPhoto['category'],
+    imageUrl: string
+  ): Promise<void> => {
+    let nextSegments: GalleryPhoto[] = [];
+    setGallery((prev) => {
+      nextSegments = prev.map((seg) => {
+        if (seg.category !== category) return seg;
+        const nextImages = (seg.images || []).filter((u) => u !== imageUrl);
+        return {
+          ...seg,
+          images: nextImages,
+          imageUrl: nextImages[0] || '',
+        };
+      });
+      StorageService.saveGallery(nextSegments);
+      return nextSegments;
+    });
+
+    try {
+      const res = await ApiService.deleteGalleryFile(category, imageUrl);
+      if (Array.isArray(res.segments) && res.segments.length > 0) {
+        setGallery(res.segments);
+        StorageService.saveGallery(res.segments);
+      }
+    } catch (err) {
+      console.warn('Could not delete gallery file on server, removed from segment:', err);
+    }
   };
 
   const updateHallOfFame4 = async (updates: Partial<HallOfFameEdition>) => {
     let updatedHof4: HallOfFameEdition | null = null;
-    setHallOfFame((prev) =>
-      prev.map((h) => {
+    setHallOfFame((prev) => {
+      const next = prev.map((h) => {
         if (h.edition !== '4.0') return h;
         updatedHof4 = { ...h, ...updates };
         return updatedHof4;
-      })
-    );
+      });
+      StorageService.saveHallOfFame(next);
+      return next;
+    });
 
     if (updatedHof4) {
       try {
@@ -1079,6 +1254,9 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         deleteNotice,
         updateScheduleItem,
         addGalleryPhoto,
+        uploadGalleryPhotos,
+        updateGallerySegment,
+        removeGalleryPhoto,
         updateHallOfFame4,
         submitInquiry,
         updateInquiryStatus,

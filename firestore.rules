@@ -75,15 +75,17 @@ service cloud.firestore {
 
     function isValidHallOfFame(data) {
       return data.keys().hasAll(['edition', 'year', 'theme', 'status', 'champion', 'runnerUp', 'bestTournamentDebater', 'finalMatchBestDebater', 'committee'])
+        && data.keys().hasOnly(['edition', 'year', 'theme', 'status', 'champion', 'runnerUp', 'emergingTeam', 'bestTournamentDebater', 'finalMatchBestDebater', 'committee'])
         && data.edition is string && data.edition.size() >= 1 && data.edition.size() <= 16
         && data.year is number
         && data.theme is string && data.theme.size() <= 300
         && data.status in ['COMPLETED', 'IN_PROGRESS']
         && data.champion is map
         && data.runnerUp is map
+        && (!('emergingTeam' in data) || data.emergingTeam is map)
         && data.bestTournamentDebater is map
         && data.finalMatchBestDebater is map
-        && data.committee is list && data.committee.size() <= 20;
+        && data.committee is list && data.committee.size() <= 50;
     }
 
     function isValidSchedule(data) {
@@ -103,7 +105,7 @@ service cloud.firestore {
       allow get: if isValidId(docId);
     }
 
-    // Registered Teams collection (real-time public counter & directory + validated cloud registration)
+    // Registered Teams collection (real-time public counter & directory + validated cloud registration + permanent deletion)
     match /teams/{teamId} {
       allow get: if isValidId(teamId);
       allow list: if true;

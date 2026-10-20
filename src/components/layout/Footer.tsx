@@ -13,8 +13,10 @@ import {
   GraduationCap,
   Cpu,
   IdCard,
+  Shield,
 } from 'lucide-react';
 import { TechDebateLogo } from '../common/TechDebateLogo';
+import { useAdminAuth } from '../../context/AdminAuthContext';
 
 interface FooterProps {
   onSelectTab: (tab: string) => void;
@@ -31,6 +33,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
   const [showDeveloperModal, setShowDeveloperModal] = useState(false);
   const [photoIdx, setPhotoIdx] = useState(0);
   const [imgError, setImgError] = useState(false);
+  const { isAuthenticated } = useAdminAuth();
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -135,16 +138,16 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
                 </a>
               </div>
 
-              {/* Back to Top Button */}
+              {/* Back to Top Button (with clear upward sign) */}
               <motion.button
                 whileHover={{ scale: 1.08, y: -2 }}
                 whileTap={{ scale: 0.92 }}
                 onClick={scrollToTop}
-                className="w-11 h-11 min-h-[44px] min-w-[44px] rounded-full clay-btn-primary p-0 flex items-center justify-center transition-all cursor-pointer touch-manipulation active:scale-95 shadow-md shadow-cyan-500/20"
+                className="w-11 h-11 min-h-[44px] min-w-[44px] rounded-full clay-btn-primary !p-0 flex items-center justify-center text-white transition-all cursor-pointer touch-manipulation active:scale-95 shadow-md shadow-cyan-500/25"
                 title="Back to Top"
                 aria-label="Back to top"
               >
-                <ArrowUp className="w-4 h-4 stroke-[2.5]" />
+                <ArrowUp className="w-5 h-5 text-white shrink-0 stroke-[2.75]" />
               </motion.button>
             </div>
           </div>
@@ -246,9 +249,9 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
                 </div>
               </div>
 
-              {/* Social & Profile Buttons */}
-              <div className="mt-5">
-                <span className="block text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-2.5">
+              {/* Social & Profile Buttons + Admin Panel Login Button */}
+              <div className="mt-5 space-y-2.5">
+                <span className="block text-[10px] font-mono uppercase tracking-widest text-slate-400">
                   Connect with Developer
                 </span>
                 <div className="grid grid-cols-2 gap-2.5">
@@ -269,6 +272,19 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
                     );
                   })}
                 </div>
+
+                {/* Admin Panel Login Button (Below the 4 Social Buttons) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeveloperModal(false);
+                    onSelectTab('admin');
+                  }}
+                  className="w-full mt-1 px-4 py-2.5 rounded-xl border border-cyan-400/50 bg-gradient-to-r from-cyan-500/25 via-sky-500/25 to-blue-600/25 hover:from-cyan-500/40 hover:to-blue-600/40 text-cyan-200 hover:text-white font-mono text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-[0_0_20px_rgba(6,182,212,0.2)]"
+                >
+                  <Shield className="w-4 h-4 text-cyan-300 shrink-0" />
+                  <span>{isAuthenticated ? 'Open Admin Panel' : 'Admin Panel Login'}</span>
+                </button>
               </div>
             </motion.div>
           </div>

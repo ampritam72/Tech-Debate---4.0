@@ -20,7 +20,7 @@ export const KeyInformationSection: React.FC<KeyInformationSectionProps> = ({
     },
     {
       id: 'team',
-      title: 'Team of 2/3 Speakers',
+      title: 'Teams of 3 Speakers',
       description: '3 primary speakers per team representing your batch.',
       icon: Users,
       highlight: '3 Members',

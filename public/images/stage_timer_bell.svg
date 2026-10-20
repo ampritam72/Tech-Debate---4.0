@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 320" width="100%" height="100%">
+  <defs>
+    <!-- Deep Stage Arena Background -->
+    <radialGradient id="stageBg" cx="50%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#0b295e" />
+      <stop offset="55%" stop-color="#04122e" />
+      <stop offset="100%" stop-color="#020817" />
+    </radialGradient>
+
+    <!-- Cyan Digital Screen Gradient -->
+    <linearGradient id="timerScreenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a254d" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#030d22" stop-opacity="0.98" />
+    </linearGradient>
+
+    <!-- Cyan Neon Rim -->
+    <linearGradient id="cyanNeon" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="50%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#22d3ee" />
+    </linearGradient>
+
+    <!-- Golden Brass Adjudication Bell Gradient -->
+    <linearGradient id="goldBell" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="35%" stop-color="#facc15" />
+      <stop offset="75%" stop-color="#d97706" />
+      <stop offset="100%" stop-color="#92400e" />
+    </linearGradient>
+
+    <linearGradient id="goldBase" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#78350f" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#78350f" />
+    </linearGradient>
+
+    <!-- Neon Glow Filters -->
+    <filter id="cyanGlow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="goldGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="7" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="640" height="320" rx="18" fill="url(#stageBg)" />
+
+  <!-- Subtle Stage Grid Lines -->
+  <g stroke="#38bdf8" stroke-opacity="0.08" stroke-width="1">
+    <line x1="0" y1="64" x2="640" y2="64" />
+    <line x1="0" y1="128" x2="640" y2="128" />
+    <line x1="0" y1="192" x2="640" y2="192" />
+    <line x1="0" y1="256" x2="640" y2="256" />
+    <line x1="128" y1="0" x2="128" y2="320" />
+    <line x1="256" y1="0" x2="256" y2="320" />
+    <line x1="384" y1="0" x2="384" y2="320" />
+    <line x1="512" y1="0" x2="512" y2="320" />
+  </g>
+
+  <!-- Overhead Stage Spotlights -->
+  <polygon points="160,0 60,290 280,290" fill="#38bdf8" opacity="0.10" />
+  <polygon points="480,0 360,290 580,290" fill="#fbbf24" opacity="0.10" />
+
+  <!-- Stage Floor Horizon Curve -->
+  <path d="M 0,268 Q 320,242 640,268 L 640,320 L 0,320 Z" fill="#020917" />
+  <path d="M 0,268 Q 320,242 640,268" fill="none" stroke="url(#cyanNeon)" stroke-width="2.5" filter="url(#cyanGlow)" />
+
+  <!-- LEFT / CENTER: Digital Stage Countdown Display Board -->
+  <g transform="translate(42, 42)">
+    <!-- Outer Frame Shadow & Glow -->
+    <rect x="0" y="0" width="336" height="196" rx="18" fill="url(#timerScreenGrad)" stroke="url(#cyanNeon)" stroke-width="2.5" filter="url(#cyanGlow)" />
+    <rect x="10" y="10" width="316" height="176" rx="12" fill="#020816" stroke="#1e3a5f" stroke-width="1" />
+
+    <!-- Top Status Indicator Bar inside Screen -->
+    <circle cx="30" cy="30" r="5" fill="#22d3ee" filter="url(#cyanGlow)" />
+    <text x="44" y="34" fill="#7dd3fc" font-family="monospace" font-size="11" font-weight="bold" letter-spacing="2">STAGE TIMER · 4M SPEECH</text>
+    <rect x="242" y="20" width="68" height="20" rx="5" fill="#083344" stroke="#06b6d4" stroke-width="1" />
+    <text x="276" y="34" text-anchor="middle" fill="#67e8f9" font-family="monospace" font-size="10" font-weight="bold">LIVE</text>
+
+    <!-- Main Digital Clock Readout -->
+    <text x="168" y="122" text-anchor="middle" fill="#f8fafc" font-family="monospace" font-size="76" font-weight="900" letter-spacing="4" filter="url(#cyanGlow)">04:00</text>
+
+    <!-- Milestone Progress Bar & Markers -->
+    <rect x="28" y="146" width="280" height="8" rx="4" fill="#0f172a" />
+    <rect x="28" y="146" width="210" height="8" rx="4" fill="url(#cyanNeon)" filter="url(#cyanGlow)" />
+    <circle cx="98" cy="150" r="5" fill="#38bdf8" />
+    <circle cx="238" cy="150" r="5" fill="#fbbf24" filter="url(#goldGlow)" />
+    <circle cx="308" cy="150" r="5" fill="#f43f5e" />
+
+    <!-- Milestone Labels -->
+    <text x="28" y="172" fill="#64748b" font-family="monospace" font-size="10" font-weight="bold">00:00</text>
+    <text x="98" y="172" text-anchor="middle" fill="#38bdf8" font-family="monospace" font-size="10" font-weight="bold">1:00 BELL</text>
+    <text x="238" y="172" text-anchor="middle" fill="#fbbf24" font-family="monospace" font-size="10" font-weight="bold">3:00 WARN</text>
+    <text x="308" y="172" text-anchor="end" fill="#fb7185" font-family="monospace" font-size="10" font-weight="bold">4:00 END</text>
+  </g>
+
+  <!-- RIGHT: Golden Adjudication Desk Bell with Soundwave Rings -->
+  <g transform="translate(495, 152)">
+    <!-- Acoustic Chime Wave Rings -->
+    <path d="M -68,-52 A 78,78 0 0,1 -42,-88" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" opacity="0.75" filter="url(#goldGlow)" />
+    <path d="M -84,-62 A 98,98 0 0,1 -52,-106" fill="none" stroke="#fde047" stroke-width="2" stroke-linecap="round" opacity="0.45" />
+
+    <path d="M 68,-52 A 78,78 0 0,0 42,-88" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" opacity="0.75" filter="url(#goldGlow)" />
+    <path d="M 84,-62 A 98,98 0 0,0 52,-106" fill="none" stroke="#fde047" stroke-width="2" stroke-linecap="round" opacity="0.45" />
+
+    <!-- Bell Plunger / Top Striker Pin -->
+    <rect x="-12" y="-76" width="24" height="7" rx="3.5" fill="url(#goldBell)" filter="url(#goldGlow)" />
+    <rect x="-4" y="-69" width="8" height="14" fill="#d97706" />
+
+    <!-- Bell Dome -->
+    <path d="M -64,20 C -64,-34 -38,-56 0,-56 C 38,-56 64,-34 64,20 Z" fill="url(#goldBell)" stroke="#fef08a" stroke-width="1.5" filter="url(#goldGlow)" />
+
+    <!-- Specular Highlight on Dome -->
+    <path d="M -42,8 C -42,-24 -24,-42 -6,-44 C -18,-32 -26,-12 -26,8 Z" fill="#fef9c3" opacity="0.55" />
+
+    <!-- Bell Rim Lip -->
+    <rect x="-72" y="18" width="144" height="10" rx="5" fill="url(#goldBell)" stroke="#fde047" stroke-width="1" />
+
+    <!-- Heavy Ebony & Brass Desk Base -->
+    <path d="M -82,28 L 82,28 L 92,46 L -92,46 Z" fill="#0f172a" stroke="url(#goldBase)" stroke-width="2" />
+    <rect x="-96" y="46" width="192" height="8" rx="4" fill="url(#goldBase)" />
+
+    <!-- Auto-Bell Badge Pill under Bell -->
+    <rect x="-76" y="66" width="152" height="24" rx="12" fill="#451a03" stroke="#f59e0b" stroke-width="1.5" />
+    <text x="0" y="82" text-anchor="middle" fill="#fde68a" font-family="monospace" font-size="11" font-weight="bold" letter-spacing="1.5">AUTO CHIME BELL</text>
+  </g>
+</svg>

@@ -728,25 +728,29 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
                   if (s.step < currentStep) setCurrentStep(s.step as 1 | 2 | 3);
                 }}
                 disabled={s.step > currentStep}
-                className={`relative z-10 flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all cursor-pointer ${
-                  s.step > currentStep ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                className={`relative z-10 flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all ${
+                  s.step > currentStep ? 'cursor-not-allowed' : 'cursor-pointer'
                 }`}
               >
                 <div 
-                  className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center font-mono font-bold text-xs sm:text-sm transition-all duration-300 ${
+                  className={`w-10 h-10 sm:w-12 sm:h-12 !p-0 rounded-2xl flex items-center justify-center font-mono font-bold text-xs sm:text-sm transition-all duration-300 ${
                     isCompleted
                       ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)] border border-emerald-400'
                       : isCurrent
-                      ? 'clay-btn-primary font-extrabold scale-105'
-                      : 'clay-tab text-slate-400'
+                      ? 'clay-btn-primary !p-0 text-white font-extrabold scale-105'
+                      : 'clay-tab !p-0 text-cyan-300 border border-cyan-400/40'
                   }`}
                 >
-                  {isCompleted ? <Check className="w-5 h-5 text-white" /> : <Icon className="w-4 h-4 sm:w-5 sm:h-5" />}
+                  {isCompleted ? (
+                    <Check className="w-5 h-5 text-white shrink-0 stroke-[2.75]" />
+                  ) : (
+                    <Icon className="w-5 h-5 text-current shrink-0 stroke-[2.25]" />
+                  )}
                 </div>
 
                 <div className="text-center">
                   <span className={`block font-display text-[11px] sm:text-sm font-bold ${
-                    isCurrent ? 'text-cyan-300' : isCompleted ? 'text-emerald-300' : 'text-slate-400'
+                    isCurrent ? 'text-cyan-300' : isCompleted ? 'text-emerald-300' : 'text-slate-300'
                   }`}>
                     {s.title}
                   </span>
@@ -1147,7 +1151,7 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
                           }`}
                         >
                           <label className="block text-[11px] font-mono text-slate-300 mb-1 font-semibold">
-                            Mobile Phone <span className="text-rose-400">*</span>
+                            Mobile Number (WhatsApp-linked) <span className="text-rose-400">*</span>
                           </label>
                           <input
                             type="text"
@@ -1379,7 +1383,7 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
                   }`}
                 >
                   <label className="block text-xs font-mono text-slate-300 mb-1 font-semibold">
-                    Sender Mobile Phone *
+                    Sender Mobile Number *
                   </label>
                   <input
                     type="text"

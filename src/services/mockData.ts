@@ -586,33 +586,43 @@ export const HALL_OF_FAME: HallOfFameEdition[] = [
     champion: {
       teamName: 'Championship In Progress',
       batch: '2026 Season',
-      members: ['To be crowned in Grand Final', 'Play-Off Rounds: Oct 25, 2026', 'Varendra University Auditorium']
+      members: ['To be crowned in Grand Final', 'Play-Off Rounds: Oct 25, 2026', 'Varendra University Auditorium'],
+      photoUrl: ''
     },
     runnerUp: {
       teamName: 'Runner-Up TBD',
       batch: '2026 Season',
-      members: ['Silver Medalist', 'Trophy Presentation', 'VU Central Auditorium']
+      members: ['Silver Medalist', 'Trophy Presentation', 'VU Central Auditorium'],
+      photoUrl: ''
+    },
+    emergingTeam: {
+      teamName: 'Emerging Team TBD',
+      batch: '2026 Season',
+      members: ['Rising Debaters Award', 'Breakout Performance', 'VU Central Auditorium'],
+      photoUrl: ''
     },
     bestTournamentDebater: {
       name: 'Tabulation in Progress',
       batch: 'Department of CSE',
       studentId: 'TD4-TAB-LIVE',
-      achievement: 'Calculated dynamically across play-off and knockout rounds.'
+      achievement: 'Calculated dynamically across play-off and knockout rounds.',
+      photoUrl: ''
     },
     finalMatchBestDebater: {
       name: 'Final Round Best Speaker TBD',
       batch: 'Department of CSE',
-      studentId: 'TD4-FINAL-BS'
+      studentId: 'TD4-FINAL-BS',
+      photoUrl: ''
     },
     committee: [
       { name: 'Mahfujur Rahman Arnob', position: 'Coordinator (Faculty Member)', batch: 'Faculty of CSE' },
       { name: 'Nuhan Intekhab', position: 'Coordinator (Faculty Member)', batch: 'Faculty of CSE' },
       { name: 'Abir Mahmud Pritam', position: 'Organizing Head', batch: '32nd Batch' },
       { name: 'Farhan Ahamed', position: 'Organizing Secretary', batch: '33rd Batch' },
-      { name: 'Sumsuzzoha', position: 'Executive Member', batch: '33rd Batch' },
-      { name: 'Md. Sohel Parvez', position: 'Executive Member', batch: '33rd Batch' },
-      { name: 'Mafikul Islam', position: 'Executive Member', batch: '33rd Batch' },
-      { name: 'Ovijit Saha', position: 'Executive Member', batch: '33rd Batch' }
+      { name: 'Sumsuzzoha', position: 'Kit Distribution Head', batch: '33rd Batch' },
+      { name: 'Md. Sohel Parvez', position: 'Event Coordination & Decoration Head', batch: '33rd Batch' },
+      { name: 'Mafikul Islam', position: 'Marketing & Communication Head', batch: '33rd Batch' },
+      { name: 'Ovijit Saha', position: 'Snacks & Food Head', batch: '33rd Batch' }
     ]
   }
 ];
@@ -709,52 +719,58 @@ export const SCHEDULE: ScheduleItem[] = [
 
 export const GALLERY_ITEMS: GalleryPhoto[] = [
   {
-    id: 'g1',
-    title: 'Inaugural Address at Tech Debate 3.0',
-    category: 'OPENING',
-    imageUrl: 'https://images.unsplash.com/photo-1544531585-9847b68c8c86?auto=format&fit=crop&w=800&q=80',
-    caption: 'Faculty Convenor and advisors delivering the opening remarks emphasizing logical rigor in computer science.',
-    date: 'October 2025'
+    id: 'g-workshop',
+    title: 'Workshop - Debate Unlocked',
+    category: 'WORKSHOP',
+    imageUrl: '',
+    images: [],
+    caption: 'Faculty Convenor and advisors conducting the pre-tournament workshop on Asian Parliamentary debate structure.',
+    date: '03 September'
   },
   {
-    id: 'g2',
-    title: 'Prime Minister Constructive Speech',
+    id: 'g-kit',
+    title: 'Official Delegate Kit Distribution',
+    category: 'KIT_DISTRIBUTION',
+    imageUrl: '',
+    images: [],
+    caption: 'Participating CSE debaters receiving their official tournament badges, folders, and delegate kits.',
+    date: '25 October'
+  },
+  {
+    id: 'g-sessions',
+    title: 'Parliamentary Debate Sessions & Rebuttals',
     category: 'DEBATE_SESSIONS',
-    imageUrl: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&w=800&q=80',
-    caption: 'Fierce debate session on autonomous ethics during Quarter-Final round 2.',
-    date: 'October 2025'
+    imageUrl: '',
+    images: [],
+    caption: 'Fierce debate sessions, constructive speeches, and sharp Point of Information (POI) exchanges on stage.',
+    date: '26 October'
   },
   {
-    id: 'g3',
+    id: 'g-judges',
     title: 'Adjudication Core Evaluation Panel',
     category: 'JUDGES',
-    imageUrl: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=800&q=80',
-    caption: 'Distinguished faculty adjudicators deliberate on speaker marks and motion interpretations.',
-    date: 'October 2025'
+    imageUrl: '',
+    images: [],
+    caption: 'Distinguished faculty adjudicators deliberating on speaker marks and motion interpretations.',
+    date: 'October 2026'
   },
   {
-    id: 'g4',
+    id: 'g-final',
     title: 'Grand Final Showdown on Stage',
     category: 'FINAL_EVENT',
-    imageUrl: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '',
+    images: [],
     caption: 'Grand final clash in the central auditorium packed with CSE faculty and students.',
-    date: 'October 2025'
+    date: 'Upcoming'
   },
   {
-    id: 'g5',
-    title: 'Championship Trophy Conferral',
+    id: 'g-awards',
+    title: 'Championship Trophy & Award Ceremony',
     category: 'AWARDS',
-    imageUrl: 'https://images.unsplash.com/photo-1578269174936-2709b6aeb913?auto=format&fit=crop&w=800&q=80',
-    caption: 'Tech Debate 3.0 Champions Quantum Enigma hoisting the champion trophy.',
-    date: 'October 2025'
-  },
-  {
-    id: 'g6',
-    title: 'Point of Information (POI) Exchange',
-    category: 'DEBATE_SESSIONS',
-    imageUrl: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80',
-    caption: 'Leader of Opposition standing up for a sharp POI challenge during prime ministerial speech.',
-    date: 'October 2025'
+    imageUrl: '',
+    images: [],
+    caption: 'Official conferral of Champion, Runners-Up, Emerging Team, and Best Tournament Debater awards.',
+    date: 'Upcoming'
   }
 ];
 

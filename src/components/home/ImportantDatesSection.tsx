@@ -30,12 +30,14 @@ export const ImportantDatesSection: React.FC<ImportantDatesSectionProps> = ({
   onViewScheduleClick,
 }) => {
   const dates = [
-    { date: '17 Oct', title: 'Registration Opens', stage: 'Stage 01', completed: true },
-    { date: '22 Oct', title: 'Registration Closes', stage: 'Stage 02', active: true },
-    { date: '25 Oct', title: 'Play-Off Rounds Start', stage: 'Stage 03', completed: false },
-    { date: 'Upcoming', title: 'Round of 32', stage: 'Stage 04', completed: false },
-    { date: 'Upcoming', title: 'Quarter & Semi Finals', stage: 'Stage 05', completed: false },
-    { date: 'Upcoming', title: 'Grand Final', stage: 'Stage 06', completed: false },
+    { date: '03 September', title: 'Workshop - Debate Unlocked', stage: 'Stage 01', completed: true },
+    { date: '17 October', title: 'Registration Opens', stage: 'Stage 02', completed: true },
+    { date: '22 October', title: 'Registration Closes', stage: 'Stage 03', active: true, completed: false },
+    { date: '25 October', title: 'Kit Distribution', stage: 'Stage 04', completed: false },
+    { date: '26 October', title: 'Play-Off - Rounds of 32 Start', stage: 'Stage 05', completed: false },
+    { date: 'Upcoming', title: 'Round of 16', stage: 'Stage 06', completed: false },
+    { date: 'Upcoming', title: 'Quarter & Semi Finals', stage: 'Stage 07', completed: false },
+    { date: 'Upcoming', title: 'Grand Final', stage: 'Stage 08', completed: false },
   ];
 
   return (
@@ -86,44 +88,60 @@ export const ImportantDatesSection: React.FC<ImportantDatesSectionProps> = ({
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, margin: '-40px' }}
-            className="lg:col-span-7 space-y-4 relative"
+            className="lg:col-span-7 space-y-3.5 relative"
           >
             {/* Vertical Connector Line */}
-            <div className="absolute left-[9px] top-3 bottom-3 w-[2px] bg-gradient-to-b from-cyan-400 via-blue-500/60 to-cyan-300 pointer-events-none" />
+            <div className="absolute left-[9px] top-3 bottom-3 w-[2px] bg-gradient-to-b from-emerald-400 via-cyan-400 to-blue-500/60 pointer-events-none" />
 
             {dates.map((d, i) => (
               <motion.div
                 key={i}
                 variants={itemVariants}
-                className="flex items-center justify-between gap-4 relative pl-8 p-3 rounded-2xl clay-card transition-all group"
+                className={`flex items-center justify-between gap-3 sm:gap-4 relative pl-8 p-3 sm:p-3.5 rounded-2xl clay-card transition-all group ${
+                  d.completed ? 'border-emerald-500/35' : ''
+                }`}
               >
                 {/* Glowing Node Dot */}
                 <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                  d.active
+                  d.completed
+                    ? 'border-emerald-400 bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.75)]'
+                    : d.active
                     ? 'border-cyan-300 bg-cyan-500 shadow-[0_0_15px_#0ea5e9] scale-110 animate-pulse'
-                    : d.completed
-                    ? 'border-emerald-500 bg-emerald-500/20 shadow-[0_0_8px_rgba(52,211,153,0.5)]'
                     : 'border-cyan-300 dark:border-cyan-500/30 bg-white dark:bg-[#081836] group-hover:border-cyan-400'
                 }`}>
                   {d.completed ? (
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-300" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-white shrink-0 stroke-[2.5]" />
                   ) : (
                     <div className={`w-1.5 h-1.5 rounded-full ${d.active ? 'bg-white' : 'bg-cyan-500 dark:bg-cyan-300'}`} />
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="px-3 py-1.5 rounded-xl clay-tab text-xs font-mono font-semibold text-sky-700 dark:text-cyan-200 shrink-0">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <span className="px-2.5 sm:px-3 py-1.5 rounded-xl clay-tab text-[11px] sm:text-xs font-mono font-semibold text-sky-700 dark:text-cyan-200 shrink-0">
                     {d.date}
                   </span>
-                  <span className="font-display text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-cyan-400 transition-colors">
+                  <span className="font-display text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-cyan-400 transition-colors">
                     {d.title}
                   </span>
+                  {d.completed && (
+                    <span
+                      className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-400/70 text-emerald-400 shrink-0 shadow-[0_0_10px_rgba(16,185,129,0.35)]"
+                      title="Completed"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 stroke-[2.5]" />
+                    </span>
+                  )}
                 </div>
 
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-300 group-hover:text-cyan-400 shrink-0">
-                  {d.stage}
-                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={`text-[10px] font-mono font-bold uppercase tracking-wider shrink-0 ${
+                    d.completed
+                      ? 'text-emerald-400'
+                      : 'text-slate-500 dark:text-slate-300 group-hover:text-cyan-400'
+                  }`}>
+                    {d.stage}
+                  </span>
+                </div>
               </motion.div>
             ))}
           </motion.div>

@@ -8,7 +8,6 @@ import { ChampionshipTopTicker } from './components/layout/ChampionshipTopTicker
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { AdminLoginModal } from './components/admin/AdminLoginModal';
-import { DebateTimerModal } from './components/common/DebateTimerModal';
 import { ScrollProgress } from './components/motion';
 import { InitialLoader } from './components/common/InitialLoader';
 
@@ -20,6 +19,7 @@ import { GalleryPage } from './pages/GalleryPage';
 import { CommitteePage } from './pages/CommitteePage';
 import { ContactPage } from './pages/ContactPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { DebateTimerPage } from './pages/DebateTimerPage';
 
 // Stagger container animation variants optimized for fluid 60fps mobile & desktop transitions
 const pageContainerVariants = {
@@ -67,7 +67,6 @@ const AppContent: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<string>('home');
   const [aboutTargetSection, setAboutTargetSection] = useState<string | undefined>(undefined);
   const [adminModalOpen, setAdminModalOpen] = useState<boolean>(false);
-  const [timerModalOpen, setTimerModalOpen] = useState<boolean>(false);
   const { isAuthenticated } = useAdminAuth();
   const { refreshFromDatabase } = useTournament();
 
@@ -114,13 +113,14 @@ const AppContent: React.FC = () => {
       {/* Background cyber grid & glow */}
       <CyberBackground />
 
-      {/* Main Sticky Navigation with Official Logo */}
-      <Navbar
-        currentTab={currentTab}
-        onSelectTab={handleSelectTab}
-        onOpenAdminModal={() => setAdminModalOpen(true)}
-        onOpenTimer={() => setTimerModalOpen(true)}
-      />
+      {/* Main Sticky Navigation with Official Logo (hidden on full-screen stage timer page) */}
+      {currentTab !== 'timer' && (
+        <Navbar
+          currentTab={currentTab}
+          onSelectTab={handleSelectTab}
+          onOpenAdminModal={() => setAdminModalOpen(true)}
+        />
+      )}
 
       {/* Primary Page Viewport with Staggered Fluid Transitions */}
       <main className="flex-1 relative z-10">
@@ -131,7 +131,7 @@ const AppContent: React.FC = () => {
             initial="initial"
             animate="animate"
             exit="exit"
-            className={currentTab === 'home' ? '' : 'pt-24 sm:pt-28 lg:pt-32'}
+            className={currentTab === 'home' || currentTab === 'timer' ? '' : 'pt-24 sm:pt-28 lg:pt-32'}
           >
             <motion.div variants={pageChildVariants} className="w-full">
               {currentTab === 'home' && <HomePage onSelectTab={handleSelectTab} />}
@@ -140,7 +140,11 @@ const AppContent: React.FC = () => {
                   targetRuleId={aboutTargetSection}
                   onRegisterClick={() => handleSelectTab('registration')}
                   onExploreClick={() => handleSelectTab('home')}
+                  onOpenTimerPage={() => handleSelectTab('timer')}
                 />
+              )}
+              {currentTab === 'timer' && (
+                <DebateTimerPage onBack={() => handleSelectTab('home')} />
               )}
               {currentTab === 'registration' && (
                 <RegistrationPage onGoHome={() => handleSelectTab('home')} />
@@ -157,20 +161,14 @@ const AppContent: React.FC = () => {
         </AnimatePresence>
       </main>
 
-      {/* Persistent University Footer */}
-      <Footer onSelectTab={handleSelectTab} />
+      {/* Persistent University Footer (hidden on full-screen stage timer page) */}
+      {currentTab !== 'timer' && <Footer onSelectTab={handleSelectTab} />}
 
       {/* Admin Login Dialog */}
       <AdminLoginModal
         isOpen={adminModalOpen}
         onClose={() => setAdminModalOpen(false)}
         onSuccess={handleAdminSuccess}
-      />
-
-      {/* Global Official Debate Timer & Timed Bells Modal */}
-      <DebateTimerModal
-        isOpen={timerModalOpen}
-        onClose={() => setTimerModalOpen(false)}
       />
     </div>
   );

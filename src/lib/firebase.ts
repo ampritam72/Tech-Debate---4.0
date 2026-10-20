@@ -236,7 +236,7 @@ export function sanitizeInquiryForFirestore(inquiry: ContactInquiry): Record<str
 }
 
 export function sanitizeHallOfFameForFirestore(hof: HallOfFameEdition): Record<string, any> {
-  return {
+  const docData: Record<string, any> = {
     edition: String(hof.edition || '4.0').trim().slice(0, 16),
     year: Number(hof.year || 2026),
     theme: String(hof.theme || '').trim().slice(0, 300),
@@ -247,6 +247,7 @@ export function sanitizeHallOfFameForFirestore(hof: HallOfFameEdition): Record<s
       members: Array.isArray(hof.champion?.members)
         ? hof.champion.members.slice(0, 5).map((m) => String(m).trim().slice(0, 100))
         : ['TBD'],
+      photoUrl: String(hof.champion?.photoUrl || '').trim(),
     },
     runnerUp: {
       teamName: String(hof.runnerUp?.teamName || 'TBD').trim().slice(0, 120),
@@ -254,26 +255,39 @@ export function sanitizeHallOfFameForFirestore(hof: HallOfFameEdition): Record<s
       members: Array.isArray(hof.runnerUp?.members)
         ? hof.runnerUp.members.slice(0, 5).map((m) => String(m).trim().slice(0, 100))
         : ['TBD'],
+      photoUrl: String(hof.runnerUp?.photoUrl || '').trim(),
+    },
+    emergingTeam: {
+      teamName: String(hof.emergingTeam?.teamName || 'Emerging Team TBD').trim().slice(0, 120),
+      batch: String(hof.emergingTeam?.batch || '2026 Season').trim().slice(0, 64),
+      members: Array.isArray(hof.emergingTeam?.members)
+        ? hof.emergingTeam.members.slice(0, 5).map((m) => String(m).trim().slice(0, 100))
+        : ['Rising Debaters Award', 'Breakout Performance', 'VU Central Auditorium'],
+      photoUrl: String(hof.emergingTeam?.photoUrl || '').trim(),
     },
     bestTournamentDebater: {
       name: String(hof.bestTournamentDebater?.name || 'TBD').trim().slice(0, 120),
       batch: String(hof.bestTournamentDebater?.batch || 'CSE Department').trim().slice(0, 64),
       studentId: String(hof.bestTournamentDebater?.studentId || '').trim().slice(0, 64),
       achievement: String(hof.bestTournamentDebater?.achievement || '').trim().slice(0, 300),
+      photoUrl: String(hof.bestTournamentDebater?.photoUrl || '').trim(),
     },
     finalMatchBestDebater: {
       name: String(hof.finalMatchBestDebater?.name || 'TBD').trim().slice(0, 120),
       batch: String(hof.finalMatchBestDebater?.batch || 'CSE Department').trim().slice(0, 64),
       studentId: String(hof.finalMatchBestDebater?.studentId || '').trim().slice(0, 64),
+      photoUrl: String(hof.finalMatchBestDebater?.photoUrl || '').trim(),
     },
     committee: Array.isArray(hof.committee)
-      ? hof.committee.slice(0, 15).map((c) => ({
+      ? hof.committee.slice(0, 35).map((c) => ({
           name: String(c.name || '').trim().slice(0, 120),
           position: String(c.position || '').trim().slice(0, 120),
           batch: String(c.batch || '').trim().slice(0, 64),
+          photoUrl: String(c.photoUrl || '').trim().slice(0, 500),
         }))
       : [],
   };
+  return docData;
 }
 
 export function sanitizeScheduleForFirestore(item: ScheduleItem): Record<string, any> {

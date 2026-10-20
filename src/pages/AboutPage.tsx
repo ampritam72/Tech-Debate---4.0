@@ -26,25 +26,40 @@ import {
   BookOpen,
   Zap,
   Bell,
-  Play
+  Play,
+  Download
 } from 'lucide-react';
-import { DebateTimerModal } from '../components/common/DebateTimerModal';
+import { useTournament } from '../context/TournamentContext';
 
 interface AboutPageProps {
   targetRuleId?: string;
   onRegisterClick?: () => void;
   onExploreClick?: () => void;
+  onOpenTimerPage?: () => void;
 }
 
 export const AboutPage: React.FC<AboutPageProps> = ({ 
   targetRuleId,
   onRegisterClick = () => window.location.hash = 'registration',
-  onExploreClick = () => window.location.hash = 'home'
+  onExploreClick = () => window.location.hash = 'home',
+  onOpenTimerPage = () => window.dispatchEvent(new CustomEvent('navigate-tab', { detail: 'timer' })),
 }) => {
+  const { teams } = useTournament();
   const [selectedRuleTab, setSelectedRuleTab] = useState<string>(targetRuleId || 'all');
   const [highlightedCard, setHighlightedCard] = useState<string | null>(targetRuleId || null);
   const [expandedSection, setExpandedSection] = useState<string | null>(targetRuleId || null);
-  const [isTimerModalOpen, setIsTimerModalOpen] = useState<boolean>(false);
+
+  // Live verified teams & debaters count from database
+  const verifiedTeams = teams.filter(
+    (t) => t.status === 'VERIFIED' || t.payment?.status === 'VERIFIED'
+  );
+  const verifiedTeamsCount = verifiedTeams.length;
+  const verifiedDebatersCount = verifiedTeams.reduce((acc, t) => {
+    const validMembers = Array.isArray(t.members)
+      ? t.members.filter((m) => m && m.fullName && m.fullName.trim().length > 0)
+      : [];
+    return acc + (validMembers.length > 0 ? validMembers.length : 3);
+  }, 0);
 
   useEffect(() => {
     if (targetRuleId) {
@@ -72,7 +87,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({
 
   const heroPillars = [
     { title: 'Critical Thinking', desc: 'Analytical mindset & argument breakdown', icon: Brain },
-    { title: 'Community', desc: 'Connect with 200+ passionate tech debaters', icon: Users },
+    { title: 'Community', desc: 'Connect with passionate CSE tech debaters', icon: Users },
     { title: 'Leadership', desc: 'Public speaking & persuasive discourse', icon: Award },
     { title: 'Real Impact', desc: 'Drive technology & society conversations', icon: Sparkles },
   ];
@@ -86,8 +101,8 @@ export const AboutPage: React.FC<AboutPageProps> = ({
 
   const storyStats = [
     { value: '4th', label: 'Annual Edition', icon: Trophy },
-    { value: '200+', label: 'Debaters', icon: Users },
-    { value: '50+', label: 'Batch Teams', icon: Network },
+    { value: `${verifiedDebatersCount}`, label: 'Debaters', icon: Users },
+    { value: `${verifiedTeamsCount}`, label: 'Batch Teams', icon: Network },
     { value: '1', label: 'Grand Champion', icon: Compass },
   ];
 
@@ -507,7 +522,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({
                       <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
                         <div className="font-bold text-cyan-300">Squad Roster</div>
                         <p className="text-slate-300 leading-relaxed">
-                          3 active speakers + 1 optional registered substitute debater.
+                          Only 3 members (3 active speakers per squad).
                         </p>
                       </div>
 
@@ -645,28 +660,6 @@ export const AboutPage: React.FC<AboutPageProps> = ({
                           <p className="text-[11px] text-slate-400 mt-0.5">Overtime penalty applies</p>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Interactive Timer CTA */}
-                    <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-400/30">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-300">
-                          <Bell className="w-4 h-4" />
-                        </div>
-                        <div className="text-left">
-                          <span className="text-xs font-bold text-white block">Official Timed Bells Adjudication Clock</span>
-                          <span className="text-[11px] text-slate-400">Realistic sound synthesizer for 4m & 3m timed bells</span>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => setIsTimerModalOpen(true)}
-                        className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs font-mono tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 transition-all cursor-pointer"
-                      >
-                        <Play className="w-3.5 h-3.5 fill-current" />
-                        <span>Launch Debate Timer</span>
-                      </button>
                     </div>
 
                   </motion.div>
@@ -885,12 +878,6 @@ export const AboutPage: React.FC<AboutPageProps> = ({
           </div>
         </div>
       </section>
-
-      {/* Debate Timer Modal */}
-      <DebateTimerModal 
-        isOpen={isTimerModalOpen} 
-        onClose={() => setIsTimerModalOpen(false)} 
-      />
 
     </div>
   );

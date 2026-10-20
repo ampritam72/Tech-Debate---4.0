@@ -1,0 +1,56 @@
+[
+  {
+    "id": "g-workshop",
+    "title": "Workshop - Debate Unlocked",
+    "category": "WORKSHOP",
+    "imageUrl": "",
+    "images": [],
+    "caption": "Faculty Convenor and advisors conducting the pre-tournament workshop on Asian Parliamentary debate structure.",
+    "date": "03 September"
+  },
+  {
+    "id": "g-kit",
+    "title": "Official Delegate Kit Distribution",
+    "category": "KIT_DISTRIBUTION",
+    "imageUrl": "",
+    "images": [],
+    "caption": "Participating CSE debaters receiving their official tournament badges, folders, and delegate kits.",
+    "date": "25 October"
+  },
+  {
+    "id": "g-sessions",
+    "title": "Parliamentary Debate Sessions & Rebuttals",
+    "category": "DEBATE_SESSIONS",
+    "imageUrl": "",
+    "images": [],
+    "caption": "Fierce debate sessions, constructive speeches, and sharp Point of Information (POI) exchanges on stage.",
+    "date": "26 October"
+  },
+  {
+    "id": "g-judges",
+    "title": "Adjudication Core Evaluation Panel",
+    "category": "JUDGES",
+    "imageUrl": "",
+    "images": [],
+    "caption": "Distinguished faculty adjudicators deliberating on speaker marks and motion interpretations.",
+    "date": "October 2026"
+  },
+  {
+    "id": "g-final",
+    "title": "Grand Final Showdown on Stage",
+    "category": "FINAL_EVENT",
+    "imageUrl": "",
+    "images": [],
+    "caption": "Grand final clash in the central auditorium packed with CSE faculty and students.",
+    "date": "Upcoming"
+  },
+  {
+    "id": "g-awards",
+    "title": "Championship Trophy & Award Ceremony",
+    "category": "AWARDS",
+    "imageUrl": "",
+    "images": [],
+    "caption": "Official conferral of Champion, Runners-Up, Emerging Team, and Best Tournament Debater awards.",
+    "date": "Upcoming"
+  }
+]
