@@ -586,7 +586,7 @@ export const HALL_OF_FAME: HallOfFameEdition[] = [
     champion: {
       teamName: 'Championship In Progress',
       batch: '2026 Season',
-      members: ['To be crowned in Grand Final', 'Play-Off Rounds: Oct 25, 2026', 'Varendra University Auditorium'],
+      members: ['To be crowned in Grand Final', 'Play-Off Rounds: Oct 28, 2026', 'Varendra University Auditorium'],
       photoUrl: ''
     },
     runnerUp: {
@@ -632,7 +632,7 @@ export const NOTICES: Notice[] = [
     id: 'n1',
     title: 'Tech Debate 4.0 Registration Window & 64-Squad Slot Allocation',
     category: 'ANNOUNCEMENT',
-    content: 'Online registration runs from October 17 to October 22, 2026 at 11:59 PM BST. Up to 64 3-member squads across CSE batches will be confirmed upon MFS payment verification.',
+    content: 'Online registration runs from October 17 to October 25, 2026 at 11:59 PM BST. Up to 64 3-member squads across CSE batches will be confirmed upon MFS payment verification.',
     isPinned: true,
     publishedAt: '2026-10-17T09:00:00Z'
   },
@@ -668,7 +668,7 @@ export const SCHEDULE: ScheduleItem[] = [
   {
     id: 's2',
     title: 'Registration Closes',
-    date: '22 Oct',
+    date: '25 Oct',
     timeRange: '11:59 PM BST',
     venue: 'Tech Debate Portal',
     description: 'Final cutoff for submitting member details and transaction IDs. Roster lock.',
@@ -678,7 +678,7 @@ export const SCHEDULE: ScheduleItem[] = [
   {
     id: 's3',
     title: 'Play-Off Rounds Start',
-    date: '25 Oct',
+    date: '28 Oct',
     timeRange: '09:30 AM BST',
     venue: 'CSE Seminar Rooms & Galleries',
     description: 'Play-off rounds kick off for teams competing to reach the knockout stage.',
@@ -734,7 +734,7 @@ export const GALLERY_ITEMS: GalleryPhoto[] = [
     imageUrl: '',
     images: [],
     caption: 'Participating CSE debaters receiving their official tournament badges, folders, and delegate kits.',
-    date: '25 October'
+    date: '27 October'
   },
   {
     id: 'g-sessions',
@@ -743,7 +743,7 @@ export const GALLERY_ITEMS: GalleryPhoto[] = [
     imageUrl: '',
     images: [],
     caption: 'Fierce debate sessions, constructive speeches, and sharp Point of Information (POI) exchanges on stage.',
-    date: '26 October'
+    date: '28 October'
   },
   {
     id: 'g-judges',

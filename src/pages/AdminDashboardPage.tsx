@@ -53,6 +53,18 @@ export const AdminDashboardPage: React.FC = () => {
   // Confirmation Modals State
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
   const [teamToDelete, setTeamToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [actionConfirmModal, setActionConfirmModal] = useState<{
+    type: 'VERIFY_TEAM' | 'DELETE_TEAM' | 'APPROVE_PAYMENT' | 'REJECT_PAYMENT';
+    teamId: string;
+    teamName: string;
+    batch?: string;
+    paymentMethod?: string;
+    transactionId?: string;
+    senderNumber?: string;
+    amount?: number;
+  } | null>(null);
+  const [rejectionReasonInput, setRejectionReasonInput] = useState('Mismatched transaction ID');
+  const [isActionSubmitting, setIsActionSubmitting] = useState(false);
   const [showResetDbConfirmModal, setShowResetDbConfirmModal] = useState(false);
   const [clearSuccessToast, setClearSuccessToast] = useState<string | null>(null);
 
@@ -398,13 +410,38 @@ export const AdminDashboardPage: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <button
-                        onClick={() => updatePaymentStatus(t.id, 'VERIFIED')}
+                        type="button"
+                        onClick={() =>
+                          setActionConfirmModal({
+                            type: 'VERIFY_TEAM',
+                            teamId: t.id,
+                            teamName: t.name,
+                            batch: t.batch,
+                            paymentMethod: t.payment.method,
+                            transactionId: t.payment.transactionId,
+                            senderNumber: t.payment.senderNumber,
+                            amount: t.payment.amount || 350,
+                          })
+                        }
                         className="px-2.5 py-1 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40 hover:bg-emerald-200 transition-colors font-mono cursor-pointer font-semibold"
                       >
                         Verify
                       </button>
                       <button
-                        onClick={() => updatePaymentStatus(t.id, 'REJECTED', 'Mismatched transaction ID')}
+                        type="button"
+                        onClick={() => {
+                          setRejectionReasonInput('Mismatched transaction ID');
+                          setActionConfirmModal({
+                            type: 'REJECT_PAYMENT',
+                            teamId: t.id,
+                            teamName: t.name,
+                            batch: t.batch,
+                            paymentMethod: t.payment.method,
+                            transactionId: t.payment.transactionId,
+                            senderNumber: t.payment.senderNumber,
+                            amount: t.payment.amount || 350,
+                          });
+                        }}
                         className="px-2.5 py-1 rounded bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40 hover:bg-rose-200 transition-colors font-mono cursor-pointer font-semibold"
                       >
                         Reject
@@ -554,18 +591,43 @@ export const AdminDashboardPage: React.FC = () => {
                         <div className="flex items-center justify-end gap-2.5">
                           {team.status !== 'VERIFIED' && (
                             <button
-                              onClick={() => updatePaymentStatus(team.id, 'VERIFIED')}
+                              type="button"
+                              onClick={() =>
+                                setActionConfirmModal({
+                                  type: 'VERIFY_TEAM',
+                                  teamId: team.id,
+                                  teamName: team.name,
+                                  batch: team.batch,
+                                  paymentMethod: team.payment.method,
+                                  transactionId: team.payment.transactionId,
+                                  senderNumber: team.payment.senderNumber,
+                                  amount: team.payment.amount || 350,
+                                })
+                              }
                               className="px-2.5 py-1 text-[11px] font-mono text-emerald-300 bg-emerald-950/70 border border-emerald-700/70 rounded hover:bg-emerald-900/80 cursor-pointer font-bold transition-colors"
                             >
                               Verify
                             </button>
                           )}
                           <button
-                            onClick={() => setTeamToDelete({ id: team.id, name: team.name })}
-                            className="p-1.5 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+                            type="button"
+                            onClick={() =>
+                              setActionConfirmModal({
+                                type: 'DELETE_TEAM',
+                                teamId: team.id,
+                                teamName: team.name,
+                                batch: team.batch,
+                                paymentMethod: team.payment.method,
+                                transactionId: team.payment.transactionId,
+                                senderNumber: team.payment.senderNumber,
+                                amount: team.payment.amount || 350,
+                              })
+                            }
+                            className="px-2.5 py-1 text-[11px] font-mono text-rose-300 bg-rose-950/60 border border-rose-800/70 hover:bg-rose-900/80 hover:text-white rounded flex items-center gap-1 transition-colors cursor-pointer font-bold"
                             title="Delete team"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete</span>
                           </button>
                         </div>
                       </td>
@@ -639,15 +701,37 @@ export const AdminDashboardPage: React.FC = () => {
                   {team.payment.status === 'PENDING' ? (
                     <>
                       <button
-                        onClick={() => updatePaymentStatus(team.id, 'VERIFIED')}
+                        type="button"
+                        onClick={() =>
+                          setActionConfirmModal({
+                            type: 'APPROVE_PAYMENT',
+                            teamId: team.id,
+                            teamName: team.name,
+                            batch: team.batch,
+                            paymentMethod: team.payment.method,
+                            transactionId: team.payment.transactionId,
+                            senderNumber: team.payment.senderNumber,
+                            amount: team.payment.amount || 350,
+                          })
+                        }
                         className="flex-1 py-1.5 text-xs font-mono font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 rounded transition-colors cursor-pointer"
                       >
                         Approve Payment
                       </button>
                       <button
+                        type="button"
                         onClick={() => {
-                          const reason = prompt('Rejection reason (e.g. Mismatched TrxID):') || 'Transaction not found';
-                          updatePaymentStatus(team.id, 'REJECTED', reason);
+                          setRejectionReasonInput('Mismatched transaction ID');
+                          setActionConfirmModal({
+                            type: 'REJECT_PAYMENT',
+                            teamId: team.id,
+                            teamName: team.name,
+                            batch: team.batch,
+                            paymentMethod: team.payment.method,
+                            transactionId: team.payment.transactionId,
+                            senderNumber: team.payment.senderNumber,
+                            amount: team.payment.amount || 350,
+                          });
                         }}
                         className="px-3 py-1.5 text-xs font-mono text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-800/50 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded transition-colors cursor-pointer font-bold"
                       >
@@ -660,7 +744,19 @@ export const AdminDashboardPage: React.FC = () => {
                     </div>
                   ) : (
                     <button
-                      onClick={() => updatePaymentStatus(team.id, 'VERIFIED')}
+                      type="button"
+                      onClick={() =>
+                        setActionConfirmModal({
+                          type: 'APPROVE_PAYMENT',
+                          teamId: team.id,
+                          teamName: team.name,
+                          batch: team.batch,
+                          paymentMethod: team.payment.method,
+                          transactionId: team.payment.transactionId,
+                          senderNumber: team.payment.senderNumber,
+                          amount: team.payment.amount || 350,
+                        })
+                      }
                       className="w-full py-1.5 text-xs font-mono text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-950/60 rounded border border-cyan-300 dark:border-cyan-800/40 cursor-pointer font-bold"
                     >
                       Re-verify Payment
@@ -1376,7 +1472,207 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
       )}
 
-      {/* CONFIRMATION MODAL: DELETE SINGLE TEAM */}
+      {/* UNIFIED CONFIRMATION POP-UP MODAL: TEAM VERIFY / TEAM DELETE / PAYMENT APPROVE / PAYMENT REJECT */}
+      {actionConfirmModal && (
+        <div
+          onClick={() => {
+            if (!isActionSubmitting) setActionConfirmModal(null);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className={`relative w-full max-w-md rounded-3xl border p-6 sm:p-7 text-center space-y-5 shadow-2xl overflow-hidden bg-[#0a132c] ${
+              actionConfirmModal.type === 'DELETE_TEAM' || actionConfirmModal.type === 'REJECT_PAYMENT'
+                ? 'border-rose-500/50 shadow-[0_0_50px_rgba(244,63,94,0.3)]'
+                : 'border-emerald-500/50 shadow-[0_0_50px_rgba(16,185,129,0.25)]'
+            }`}
+          >
+            {/* Icon Badge */}
+            <div
+              className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center mx-auto ${
+                actionConfirmModal.type === 'DELETE_TEAM' || actionConfirmModal.type === 'REJECT_PAYMENT'
+                  ? 'bg-rose-500/20 border-rose-400/80 text-rose-300'
+                  : 'bg-emerald-500/20 border-emerald-400/80 text-emerald-300'
+              }`}
+            >
+              {actionConfirmModal.type === 'DELETE_TEAM' ? (
+                <Trash2 className="w-7 h-7" />
+              ) : actionConfirmModal.type === 'APPROVE_PAYMENT' || actionConfirmModal.type === 'REJECT_PAYMENT' ? (
+                <CreditCard className="w-7 h-7" />
+              ) : (
+                <CheckCircle2 className="w-7 h-7" />
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <span
+                className={`inline-block px-3 py-0.5 rounded-full border text-[10px] font-mono font-bold tracking-widest uppercase ${
+                  actionConfirmModal.type === 'DELETE_TEAM' || actionConfirmModal.type === 'REJECT_PAYMENT'
+                    ? 'bg-rose-500/20 border-rose-400/30 text-rose-300'
+                    : 'bg-emerald-500/20 border-emerald-400/30 text-emerald-300'
+                }`}
+              >
+                {actionConfirmModal.type === 'VERIFY_TEAM' && 'TEAM VERIFICATION CONFIRMATION'}
+                {actionConfirmModal.type === 'DELETE_TEAM' && 'TEAM DELETION CONFIRMATION'}
+                {actionConfirmModal.type === 'APPROVE_PAYMENT' && 'PAYMENT APPROVAL CONFIRMATION'}
+                {actionConfirmModal.type === 'REJECT_PAYMENT' && 'PAYMENT REJECTION CONFIRMATION'}
+              </span>
+
+              <h3 className="font-display text-xl font-extrabold text-white">
+                {actionConfirmModal.type === 'VERIFY_TEAM' && 'Verify This Squad?'}
+                {actionConfirmModal.type === 'DELETE_TEAM' && 'Delete This Squad?'}
+                {actionConfirmModal.type === 'APPROVE_PAYMENT' && 'Approve Payment Transaction?'}
+                {actionConfirmModal.type === 'REJECT_PAYMENT' && 'Reject Payment Transaction?'}
+              </h3>
+
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                {actionConfirmModal.type === 'VERIFY_TEAM' && (
+                  <>
+                    Are you sure you want to verify squad{' '}
+                    <strong className="text-emerald-300">{actionConfirmModal.teamName}</strong> (
+                    <span className="font-mono text-cyan-300">{actionConfirmModal.teamId}</span>)? Confirming will update the team and payment status to <strong className="text-emerald-300">VERIFIED</strong> in the database.
+                  </>
+                )}
+                {actionConfirmModal.type === 'DELETE_TEAM' && (
+                  <>
+                    Are you sure you want to permanently delete squad{' '}
+                    <strong className="text-rose-300">{actionConfirmModal.teamName}</strong> (
+                    <span className="font-mono text-cyan-300">{actionConfirmModal.teamId}</span>)? Confirming will remove this squad from the database.
+                  </>
+                )}
+                {actionConfirmModal.type === 'APPROVE_PAYMENT' && (
+                  <>
+                    Are you sure you want to approve the payment for{' '}
+                    <strong className="text-emerald-300">{actionConfirmModal.teamName}</strong> (
+                    <span className="font-mono text-cyan-300">{actionConfirmModal.teamId}</span>)? Confirming will mark the payment and squad as <strong className="text-emerald-300">VERIFIED</strong> in the database.
+                  </>
+                )}
+                {actionConfirmModal.type === 'REJECT_PAYMENT' && (
+                  <>
+                    Are you sure you want to reject the payment for{' '}
+                    <strong className="text-rose-300">{actionConfirmModal.teamName}</strong> (
+                    <span className="font-mono text-cyan-300">{actionConfirmModal.teamId}</span>)?
+                  </>
+                )}
+              </p>
+            </div>
+
+            {/* Summary Details Box */}
+            <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-slate-800 text-left text-xs font-mono space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Squad:</span>
+                <span className="text-white font-bold">{actionConfirmModal.teamName} ({actionConfirmModal.teamId})</span>
+              </div>
+              {actionConfirmModal.batch && (
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Batch:</span>
+                  <span className="text-slate-200">{actionConfirmModal.batch}</span>
+                </div>
+              )}
+              {actionConfirmModal.paymentMethod && (
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Gateway & Fee:</span>
+                  <span className="text-emerald-400 font-bold">
+                    {actionConfirmModal.paymentMethod} • {actionConfirmModal.amount || 350} BDT
+                  </span>
+                </div>
+              )}
+              {actionConfirmModal.senderNumber && (
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Sender Number:</span>
+                  <span className="text-slate-200">{actionConfirmModal.senderNumber}</span>
+                </div>
+              )}
+              {actionConfirmModal.transactionId && (
+                <div className="flex justify-between">
+                  <span className="text-slate-400">TrxID:</span>
+                  <span className="text-cyan-300 font-bold">{actionConfirmModal.transactionId}</span>
+                </div>
+              )}
+            </div>
+
+            {actionConfirmModal.type === 'REJECT_PAYMENT' && (
+              <div className="text-left space-y-1">
+                <label className="block text-[11px] font-mono text-slate-400">Rejection Reason</label>
+                <input
+                  type="text"
+                  value={rejectionReasonInput}
+                  onChange={(e) => setRejectionReasonInput(e.target.value)}
+                  placeholder="e.g. Mismatched transaction ID"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs font-mono focus:outline-none focus:border-rose-400"
+                />
+              </div>
+            )}
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                disabled={isActionSubmitting}
+                onClick={() => setActionConfirmModal(null)}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-mono font-bold cursor-pointer transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isActionSubmitting}
+                onClick={async () => {
+                  setIsActionSubmitting(true);
+                  try {
+                    if (actionConfirmModal.type === 'VERIFY_TEAM') {
+                      await updatePaymentStatus(actionConfirmModal.teamId, 'VERIFIED');
+                      setClearSuccessToast(
+                        `Squad "${actionConfirmModal.teamName}" (${actionConfirmModal.teamId}) verified and updated in the database.`
+                      );
+                    } else if (actionConfirmModal.type === 'APPROVE_PAYMENT') {
+                      await updatePaymentStatus(actionConfirmModal.teamId, 'VERIFIED');
+                      setClearSuccessToast(
+                        `Payment for "${actionConfirmModal.teamName}" (TrxID: ${actionConfirmModal.transactionId}) approved and updated in the database.`
+                      );
+                    } else if (actionConfirmModal.type === 'REJECT_PAYMENT') {
+                      await updatePaymentStatus(
+                        actionConfirmModal.teamId,
+                        'REJECTED',
+                        rejectionReasonInput.trim() || 'Mismatched transaction ID'
+                      );
+                      setClearSuccessToast(
+                        `Payment for "${actionConfirmModal.teamName}" marked as REJECTED in the database.`
+                      );
+                    } else if (actionConfirmModal.type === 'DELETE_TEAM') {
+                      await deleteTeam(actionConfirmModal.teamId);
+                      setClearSuccessToast(
+                        `Squad "${actionConfirmModal.teamName}" (${actionConfirmModal.teamId}) permanently deleted from the database.`
+                      );
+                    }
+                    setTimeout(() => setClearSuccessToast(null), 4000);
+                    setActionConfirmModal(null);
+                  } finally {
+                    setIsActionSubmitting(false);
+                  }
+                }}
+                className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-mono font-bold cursor-pointer transition-all shadow-lg active:scale-95 disabled:opacity-50 ${
+                  actionConfirmModal.type === 'DELETE_TEAM' || actionConfirmModal.type === 'REJECT_PAYMENT'
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30'
+                    : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/30'
+                }`}
+              >
+                {isActionSubmitting
+                  ? 'Updating DB...'
+                  : actionConfirmModal.type === 'VERIFY_TEAM'
+                  ? 'Confirm & Verify'
+                  : actionConfirmModal.type === 'APPROVE_PAYMENT'
+                  ? 'Confirm & Approve'
+                  : actionConfirmModal.type === 'REJECT_PAYMENT'
+                  ? 'Confirm Reject'
+                  : 'Confirm & Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRMATION MODAL: DELETE SINGLE TEAM (LEGACY FALLBACK) */}
       {teamToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
           <div className="relative w-full max-w-sm rounded-2xl border border-rose-500/40 bg-[#0a132c] p-6 text-center space-y-4 shadow-2xl">
@@ -1394,8 +1690,8 @@ export const AdminDashboardPage: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  deleteTeam(teamToDelete.id);
+                onClick={async () => {
+                  await deleteTeam(teamToDelete.id);
                   setTeamToDelete(null);
                 }}
                 className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-mono font-bold cursor-pointer"

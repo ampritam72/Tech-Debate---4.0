@@ -13,16 +13,16 @@ export const RegistrationCountdownCard: React.FC<RegistrationCountdownCardProps>
 }) => {
   const { teams } = useTournament();
 
-  // Target registration deadline: Oct 22 (Registration Closes)
+  // Target registration deadline: Oct 25 at 11:59 PM (Registration Closes)
   const getTargetTimestamp = () => {
     const now = new Date();
     const year = now.getFullYear();
-    const oct22ThisYear = new Date(`${year}-10-22T23:59:59+06:00`).getTime();
-    // If current system clock is somehow past Oct 22 of this year, target next year's Oct 22 so countdown stays live
-    if (now.getTime() > oct22ThisYear) {
-      return new Date(`${year + 1}-10-22T23:59:59+06:00`).getTime();
+    const oct25ThisYear = new Date(`${year}-10-25T23:59:59+06:00`).getTime();
+    // If current system clock is somehow past Oct 25 of this year, target next year's Oct 25 so countdown stays live
+    if (now.getTime() > oct25ThisYear) {
+      return new Date(`${year + 1}-10-25T23:59:59+06:00`).getTime();
     }
-    return oct22ThisYear;
+    return oct25ThisYear;
   };
 
   const calculateTimeLeft = () => {

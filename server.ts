@@ -231,10 +231,18 @@ app.get('/api/teams', async (req, res) => {
   }
 });
 
+// Sequential queue to prevent race conditions on team ID generation during concurrent registrations/syncs
+let registrationMutex: Promise<any> = Promise.resolve();
+function runWithRegistrationLock<T>(fn: () => Promise<T>): Promise<T> {
+  const next = registrationMutex.then(fn, fn);
+  registrationMutex = next.catch(() => {});
+  return next;
+}
+
 // POST /api/register - Register team into PostgreSQL database
 app.post('/api/register', registrationLimiter, async (req, res) => {
   try {
-    const { name, batch, department, members: memberList, payment, userUid } = req.body;
+    const { id: requestedId, name, batch, department, status: requestedStatus, members: memberList, payment, userUid, isSync } = req.body;
 
     if (!name || !batch || !memberList || memberList.length !== 3 || !payment) {
       return res.status(400).json({ error: 'Missing mandatory registration fields or roster count' });
@@ -243,99 +251,157 @@ app.post('/api/register', registrationLimiter, async (req, res) => {
     const cleanTeamName = name.trim();
     const cleanTrxId = payment.transactionId.trim().toUpperCase();
 
-    const newTeamId = await withDbRetry(async () => {
-      // Check duplicate team name
-      const existingTeam = await db.select().from(teams).where(eq(teams.name, cleanTeamName));
-      if (existingTeam.length > 0) {
-        throw new Error('DUPLICATE_TEAM_NAME');
-      }
-
-      // Check duplicate transaction ID
-      const existingTrx = await db.select().from(payments).where(eq(payments.transactionId, cleanTrxId));
-      if (existingTrx.length > 0) {
-        throw new Error('DUPLICATE_TRX_ID');
-      }
-
-      // Check duplicate student IDs
-      const studentIds = memberList.map((m: any) => m.studentId.trim());
-      for (const sId of studentIds) {
-        const existingMember = await db.select().from(teamMembers).where(eq(teamMembers.studentId, sId));
-        if (existingMember.length > 0) {
-          throw new Error(`DUPLICATE_STUDENT_ID:${sId}`);
+    const result = await runWithRegistrationLock(async () => {
+      return await withDbRetry(async () => {
+        // Check duplicate team name
+        const existingTeam = await db.select().from(teams).where(eq(teams.name, cleanTeamName));
+        if (existingTeam.length > 0) {
+          if (isSync) {
+            return { teamId: existingTeam[0].id, skipped: true };
+          }
+          throw new Error('DUPLICATE_TEAM_NAME');
         }
-      }
 
-      // Generate TD4-TEAM-ID starting from TD4-TEAM-01
-      const allExisting = await db.select({ id: teams.id }).from(teams);
-      const existingIds = allExisting
-        .map(t => {
-          const match = t.id.match(/TD4-TEAM-(\d+)/i);
-          if (!match) return 0;
-          let num = parseInt(match[1], 10);
-          if (num > 100) num = num - 100;
-          return num;
-        })
-        .filter(n => !isNaN(n) && n > 0);
-      const nextNum = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1;
-      const teamId = `TD4-TEAM-${String(nextNum).padStart(2, '0')}`;
+        // Check duplicate transaction ID
+        const existingTrx = await db.select().from(payments).where(eq(payments.transactionId, cleanTrxId));
+        if (existingTrx.length > 0) {
+          if (isSync) {
+            return { teamId: existingTrx[0].teamId, skipped: true };
+          }
+          throw new Error('DUPLICATE_TRX_ID');
+        }
 
-      // 1. Insert team
-      await db.insert(teams).values({
-        id: teamId,
+        // Check duplicate student IDs
+        const studentIds = memberList.map((m: any) => m.studentId.trim());
+        for (const sId of studentIds) {
+          const existingMember = await db.select().from(teamMembers).where(eq(teamMembers.studentId, sId));
+          if (existingMember.length > 0) {
+            if (isSync) {
+              return { teamId: existingMember[0].teamId, skipped: true };
+            }
+            throw new Error(`DUPLICATE_STUDENT_ID:${sId}`);
+          }
+        }
+
+        // Generate collision-free TD4-TEAM-ID starting from TD4-TEAM-01
+        const allExisting = await db.select({ id: teams.id }).from(teams);
+        const rawIdSet = new Set(allExisting.map(t => String(t.id || '').trim().toUpperCase()));
+
+        let teamId = '';
+        if (requestedId && typeof requestedId === 'string' && requestedId.trim()) {
+          const candidate = requestedId.trim();
+          if (!rawIdSet.has(candidate.toUpperCase())) {
+            teamId = candidate;
+          }
+        }
+
+        if (!teamId) {
+          const existingNums = allExisting
+            .map(t => {
+              const match = String(t.id || '').match(/TD4-TEAM-(\d+)/i);
+              if (!match) return 0;
+              let num = parseInt(match[1], 10);
+              if (num > 100) num = num - 100;
+              return num;
+            })
+            .filter(n => !isNaN(n) && n > 0);
+
+          let nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
+          while (
+            rawIdSet.has(`TD4-TEAM-${String(nextNum).padStart(2, '0')}`.toUpperCase()) ||
+            rawIdSet.has(`TD4-TEAM-${nextNum + 100}`.toUpperCase())
+          ) {
+            nextNum++;
+          }
+          teamId = `TD4-TEAM-${String(nextNum).padStart(2, '0')}`;
+        }
+
+        const resolvedTeamStatus =
+          requestedStatus && ['VERIFIED', 'PENDING', 'REJECTED', 'DISQUALIFIED'].includes(requestedStatus)
+            ? requestedStatus
+            : 'PENDING';
+        const resolvedPaymentStatus =
+          payment.status && ['VERIFIED', 'PENDING', 'REJECTED'].includes(payment.status)
+            ? payment.status
+            : resolvedTeamStatus === 'VERIFIED'
+            ? 'VERIFIED'
+            : resolvedTeamStatus === 'REJECTED'
+            ? 'REJECTED'
+            : 'PENDING';
+
+        const uniqueSuffix = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+
+        // 1. Insert team
+        await db.insert(teams).values({
+          id: teamId,
+          name: cleanTeamName,
+          batch,
+          department: department || 'Computer Science & Engineering',
+          status: resolvedTeamStatus,
+          createdByUid: userUid || null,
+          notes: 'Submitted via Web Portal'
+        }).onConflictDoNothing();
+
+        // 2. Insert members
+        for (const [idx, m] of memberList.entries()) {
+          await db.insert(teamMembers).values({
+            id: `mem-${teamId}-${idx + 1}-${uniqueSuffix}`,
+            teamId: teamId,
+            speakerRole: m.speakerRole || (idx + 1),
+            fullName: m.fullName.trim(),
+            studentId: m.studentId.trim(),
+            batch: (m.batch || batch || '').trim(),
+            phone: (m.phone || '').trim(),
+            email: (m.email && typeof m.email === 'string' && m.email.trim())
+              ? m.email.trim()
+              : `${(m.phone || m.studentId || idx).toString().replace(/\s+/g, '')}@debater.vu.edu.bd`,
+            isLeader: !!m.isLeader
+          }).onConflictDoNothing();
+        }
+
+        // 3. Insert payment
+        await db.insert(payments).values({
+          id: `pay-${teamId}-${uniqueSuffix}`,
+          teamId: teamId,
+          method: payment.method,
+          senderNumber: payment.senderNumber.trim(),
+          transactionId: cleanTrxId,
+          amount: payment.amount || 350,
+          status: resolvedPaymentStatus
+        }).onConflictDoNothing();
+
+        return { teamId, skipped: false };
+      });
+    });
+
+    if (result.skipped) {
+      return res.status(200).json({
+        success: true,
+        teamId: result.teamId,
+        skipped: true,
+        message: 'Team already synced in database'
+      });
+    }
+
+    const newTeamId = result.teamId;
+
+    // Trigger background sync to Google Sheet backup (if configured)
+    if (!isSync) {
+      syncTeamToGoogleSheet({
+        teamId: newTeamId,
         name: cleanTeamName,
         batch,
         department: department || 'Computer Science & Engineering',
-        status: 'PENDING',
-        createdByUid: userUid || null,
-        notes: 'Submitted via Web Portal'
-      });
-
-      // 2. Insert members
-      for (const [idx, m] of memberList.entries()) {
-        await db.insert(teamMembers).values({
-          id: `mem-${Date.now()}-${idx}`,
-          teamId: teamId,
-          speakerRole: m.speakerRole || (idx + 1),
-          fullName: m.fullName.trim(),
-          studentId: m.studentId.trim(),
-          batch: (m.batch || batch || '').trim(),
-          phone: (m.phone || '').trim(),
-          email: (m.email && typeof m.email === 'string' && m.email.trim())
-            ? m.email.trim()
-            : `${(m.phone || m.studentId || idx).toString().replace(/\s+/g, '')}@debater.vu.edu.bd`,
-          isLeader: !!m.isLeader
-        });
-      }
-
-      // 3. Insert payment
-      await db.insert(payments).values({
-        id: `p-${Date.now()}`,
-        teamId: teamId,
-        method: payment.method,
-        senderNumber: payment.senderNumber.trim(),
-        transactionId: cleanTrxId,
-        amount: payment.amount || 350,
-        status: 'PENDING'
-      });
-
-      return teamId;
-    });
-
-    // Trigger background sync to Google Sheet backup (if configured)
-    syncTeamToGoogleSheet({
-      teamId: newTeamId,
-      name: cleanTeamName,
-      batch,
-      department: department || 'Computer Science & Engineering',
-      members: memberList,
-      payment: {
-        method: payment.method,
-        senderNumber: payment.senderNumber.trim(),
-        transactionId: cleanTrxId,
-        amount: payment.amount || 350,
-      },
-      registrationDate: new Date().toISOString()
-    }).catch(err => console.warn('Background sheet sync non-fatal error:', err));
+        members: memberList,
+        payment: {
+          method: payment.method,
+          senderNumber: payment.senderNumber.trim(),
+          transactionId: cleanTrxId,
+          amount: payment.amount || 350,
+        },
+        registrationDate: new Date().toISOString()
+      }).catch(err => console.warn('Background sheet sync non-fatal error:', err));
+    }
 
     res.status(201).json({
       success: true,
@@ -389,22 +455,24 @@ app.patch('/api/admin/payments/:teamId', async (req, res) => {
     }
 
     const candidateIds = getCandidateTeamIds(teamId);
-    for (const cid of candidateIds) {
-      await db.update(payments)
-        .set({
-          status,
-          rejectionReason: status === 'REJECTED' ? rejectionReason : null,
-          verifiedAt: status === 'VERIFIED' ? new Date() : null,
-          verifiedBy: verifiedBy || 'Event Admin'
-        })
-        .where(eq(payments.teamId, cid));
+    await withDbRetry(async () => {
+      for (const cid of candidateIds) {
+        await db.update(payments)
+          .set({
+            status,
+            rejectionReason: status === 'REJECTED' ? rejectionReason : null,
+            verifiedAt: status === 'VERIFIED' ? new Date() : null,
+            verifiedBy: verifiedBy || 'Event Admin'
+          })
+          .where(eq(payments.teamId, cid));
 
-      await db.update(teams)
-        .set({
-          status: status === 'VERIFIED' ? 'VERIFIED' : (status === 'REJECTED' ? 'REJECTED' : 'PENDING')
-        })
-        .where(eq(teams.id, cid));
-    }
+        await db.update(teams)
+          .set({
+            status: status === 'VERIFIED' ? 'VERIFIED' : (status === 'REJECTED' ? 'REJECTED' : 'PENDING')
+          })
+          .where(eq(teams.id, cid));
+      }
+    });
 
     res.json({ success: true, message: `Payment updated to ${status}` });
   } catch (error: any) {
@@ -420,14 +488,16 @@ app.patch('/api/admin/teams/:teamId', async (req, res) => {
     const { status, notes } = req.body;
 
     const candidateIds = getCandidateTeamIds(teamId);
-    for (const cid of candidateIds) {
-      await db.update(teams)
-        .set({
-          status: status || undefined,
-          notes: notes !== undefined ? notes : undefined
-        })
-        .where(eq(teams.id, cid));
-    }
+    await withDbRetry(async () => {
+      for (const cid of candidateIds) {
+        await db.update(teams)
+          .set({
+            status: status || undefined,
+            notes: notes !== undefined ? notes : undefined
+          })
+          .where(eq(teams.id, cid));
+      }
+    });
 
     res.json({ success: true, message: 'Team updated successfully' });
   } catch (error: any) {
@@ -1014,7 +1084,7 @@ const DEFAULT_GALLERY_SEGMENTS = [
     imageUrl: '',
     images: [] as string[],
     caption: 'Participating CSE debaters receiving their official tournament badges, folders, and delegate kits.',
-    date: '25 October'
+    date: '27 October'
   },
   {
     id: 'g-sessions',
@@ -1023,7 +1093,7 @@ const DEFAULT_GALLERY_SEGMENTS = [
     imageUrl: '',
     images: [] as string[],
     caption: 'Fierce debate sessions, constructive speeches, and sharp Point of Information (POI) exchanges on stage.',
-    date: '26 October'
+    date: '28 October'
   },
   {
     id: 'g-judges',

@@ -32,9 +32,9 @@ export const ImportantDatesSection: React.FC<ImportantDatesSectionProps> = ({
   const dates = [
     { date: '03 September', title: 'Workshop - Debate Unlocked', stage: 'Stage 01', completed: true },
     { date: '17 October', title: 'Registration Opens', stage: 'Stage 02', completed: true },
-    { date: '22 October', title: 'Registration Closes', stage: 'Stage 03', active: true, completed: false },
-    { date: '25 October', title: 'Kit Distribution', stage: 'Stage 04', completed: false },
-    { date: '26 October', title: 'Play-Off - Rounds of 32 Start', stage: 'Stage 05', completed: false },
+    { date: '25 October', title: 'Registration Closes', stage: 'Stage 03', active: true, completed: false },
+    { date: '27 October', title: 'Kit Distribution', stage: 'Stage 04', completed: false },
+    { date: '28 October', title: 'Play-Off - Rounds of 32 Start', stage: 'Stage 05', completed: false },
     { date: 'Upcoming', title: 'Round of 16', stage: 'Stage 06', completed: false },
     { date: 'Upcoming', title: 'Quarter & Semi Finals', stage: 'Stage 07', completed: false },
     { date: 'Upcoming', title: 'Grand Final', stage: 'Stage 08', completed: false },

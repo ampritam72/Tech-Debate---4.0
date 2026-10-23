@@ -171,25 +171,43 @@ function normalizeTeamObject(t: Team): Team {
 
 function mergeTeamsList(primary: Team[], secondary: Team[], deletedIds: Set<string>): Team[] {
   const byId = new Map<string, Team>();
-  const byName = new Set<string>();
+  const byName = new Map<string, string>();
+
+  const addOrMerge = (rawTeam: Team, isPrimary: boolean) => {
+    if (!rawTeam || !rawTeam.id) return;
+    const t = normalizeTeamObject(rawTeam);
+    if (deletedIds.has(t.id) || deletedIds.has(rawTeam.id)) return;
+    const normName = (t.name || '').trim().toLowerCase();
+    const existingIdForName = normName ? byName.get(normName) : undefined;
+    const targetId = existingIdForName || t.id;
+    const existing = byId.get(targetId);
+
+    if (!existing) {
+      byId.set(targetId, t);
+      if (normName) byName.set(normName, targetId);
+    } else if (existing.status === 'PENDING' && t.status !== 'PENDING') {
+      // Preserve VERIFIED / REJECTED status over stale PENDING duplicate
+      byId.set(targetId, {
+        ...existing,
+        status: t.status,
+        payment: {
+          ...existing.payment,
+          status: t.payment?.status || (t.status === 'VERIFIED' ? 'VERIFIED' : existing.payment.status),
+          verifiedAt: t.payment?.verifiedAt || existing.payment?.verifiedAt,
+          rejectionReason: t.payment?.rejectionReason || existing.payment?.rejectionReason,
+        },
+      });
+    } else if (isPrimary && existing.status === t.status && rawTeam.id === t.id) {
+      byId.set(targetId, t);
+    }
+  };
 
   for (const rawTeam of primary) {
-    if (!rawTeam || !rawTeam.id) continue;
-    const t = normalizeTeamObject(rawTeam);
-    if (deletedIds.has(t.id) || deletedIds.has(rawTeam.id)) continue;
-    byId.set(t.id, t);
-    if (t.name) byName.add(t.name.trim().toLowerCase());
+    addOrMerge(rawTeam, true);
   }
 
   for (const rawTeam of secondary) {
-    if (!rawTeam || !rawTeam.id) continue;
-    const t = normalizeTeamObject(rawTeam);
-    if (deletedIds.has(t.id) || deletedIds.has(rawTeam.id)) continue;
-    const normName = (t.name || '').trim().toLowerCase();
-    if (!byId.has(t.id) && (!normName || !byName.has(normName))) {
-      byId.set(t.id, t);
-      if (normName) byName.add(normName);
-    }
+    addOrMerge(rawTeam, false);
   }
 
   return sortTeamsDesc(Array.from(byId.values()));
@@ -212,6 +230,13 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const deletedTeamIdsRef = useRef<Set<string>>(new Set(StorageService.getDeletedTeamIds()));
   const pgTeamsCacheRef = useRef<Team[]>([]);
   const firestoreTeamsCacheRef = useRef<Team[]>([]);
+  const teamsRef = useRef<Team[]>(teams);
+  const rawDocIdsByNormIdRef = useRef<Map<string, Set<string>>>(new Map());
+  const isSyncingPgRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    teamsRef.current = teams;
+  }, [teams]);
 
   const generateNextTeamId = (existingTeams: Team[]): string => {
     let maxNum = 0;
@@ -258,8 +283,20 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           const rawData = docSnap.data() as Team;
           if (rawData && rawData.id) {
             const t = normalizeTeamObject(rawData);
-            if (!deletedTeamIdsRef.current.has(t.id) && !deletedTeamIdsRef.current.has(rawData.id)) {
-              firestoreTeamsMap.set(t.id, t);
+            if (!deletedTeamIdsRef.current.has(t.id) && !deletedTeamIdsRef.current.has(rawData.id) && !deletedTeamIdsRef.current.has(docSnap.id)) {
+              const idSet = rawDocIdsByNormIdRef.current.get(t.id) || new Set<string>();
+              idSet.add(docSnap.id);
+              idSet.add(rawData.id);
+              rawDocIdsByNormIdRef.current.set(t.id, idSet);
+
+              const existingInMap = firestoreTeamsMap.get(t.id);
+              const shouldSet =
+                !existingInMap ||
+                (existingInMap.status === 'PENDING' && t.status !== 'PENDING') ||
+                (existingInMap.status === t.status && docSnap.id === t.id);
+              if (shouldSet) {
+                firestoreTeamsMap.set(t.id, t);
+              }
               if (t.name) firestoreNamesSet.add(t.name.trim().toLowerCase());
               if (t.payment?.transactionId) {
                 firestoreTrxSet.add(t.payment.transactionId.trim().toUpperCase());
@@ -330,58 +367,49 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         StorageService.saveUnsyncedTeams(remainingUnsynced);
       }
 
-      // 3. Synchronize any Firestore teams that are missing from PostgreSQL
-      if (Array.isArray(pgTeamsResult) && pgTeamsResult.length > 0) {
+      // 3. Synchronize any Firestore teams that are missing from PostgreSQL sequentially
+      if (Array.isArray(pgTeamsResult) && firestoreTeamsMap.size > 0 && !isSyncingPgRef.current) {
         const pgNames = new Set(pgTeamsCacheRef.current.map((t) => t.name.trim().toLowerCase()));
+        const pgIds = new Set(pgTeamsCacheRef.current.map((t) => normalizeTeamId(t.id)));
+        const missingTeams = Array.from(firestoreTeamsMap.values()).filter(
+          (fsTeam) =>
+            !pgNames.has(fsTeam.name.trim().toLowerCase()) &&
+            !pgIds.has(normalizeTeamId(fsTeam.id))
+        );
 
-        for (const fsTeam of firestoreTeamsMap.values()) {
-          if (!pgNames.has(fsTeam.name.trim().toLowerCase())) {
-            ApiService.registerTeam({
-              name: fsTeam.name,
-              batch: fsTeam.batch,
-              department: fsTeam.department,
-              members: fsTeam.members.map((m) => ({
-                fullName: m.fullName,
-                studentId: m.studentId,
-                batch: m.batch || fsTeam.batch,
-                phone: m.phone,
-                email: m.email || '',
-                speakerRole: m.speakerRole,
-                isLeader: m.isLeader,
-                semester: (m as any).semester,
-              })),
-              payment: {
-                method: fsTeam.payment.method,
-                senderNumber: fsTeam.payment.senderNumber,
-                transactionId: fsTeam.payment.transactionId,
-                amount: fsTeam.payment.amount || 350,
-              },
-            }).catch(() => {});
+        if (missingTeams.length > 0) {
+          isSyncingPgRef.current = true;
+          try {
+            for (const fsTeam of missingTeams) {
+              await ApiService.registerTeam({
+                id: fsTeam.id,
+                name: fsTeam.name,
+                batch: fsTeam.batch,
+                department: fsTeam.department,
+                status: fsTeam.status,
+                isSync: true,
+                members: fsTeam.members.map((m) => ({
+                  fullName: m.fullName,
+                  studentId: m.studentId,
+                  batch: m.batch || fsTeam.batch,
+                  phone: m.phone,
+                  email: m.email || '',
+                  speakerRole: m.speakerRole,
+                  isLeader: m.isLeader,
+                  semester: (m as any).semester,
+                })),
+                payment: {
+                  method: fsTeam.payment.method,
+                  senderNumber: fsTeam.payment.senderNumber,
+                  transactionId: fsTeam.payment.transactionId,
+                  amount: fsTeam.payment.amount || 350,
+                  status: fsTeam.payment.status || fsTeam.status,
+                },
+              }).catch(() => {});
+            }
+          } finally {
+            isSyncingPgRef.current = false;
           }
-        }
-      } else if (firestoreTeamsMap.size > 0 && Array.isArray(pgTeamsResult) && pgTeamsResult.length === 0) {
-        for (const fsTeam of firestoreTeamsMap.values()) {
-          ApiService.registerTeam({
-            name: fsTeam.name,
-            batch: fsTeam.batch,
-            department: fsTeam.department,
-            members: fsTeam.members.map((m) => ({
-              fullName: m.fullName,
-              studentId: m.studentId,
-              batch: m.batch || fsTeam.batch,
-              phone: m.phone,
-              email: m.email || '',
-              speakerRole: m.speakerRole,
-              isLeader: m.isLeader,
-              semester: (m as any).semester,
-            })),
-            payment: {
-              method: fsTeam.payment.method,
-              senderNumber: fsTeam.payment.senderNumber,
-              transactionId: fsTeam.payment.transactionId,
-              amount: fsTeam.payment.amount || 350,
-            },
-          }).catch(() => {});
         }
       }
 
@@ -414,16 +442,29 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const teamsUnsub = onSnapshot(
       collection(db, 'teams'),
       (snapshot) => {
-        const firestoreTeams: Team[] = [];
+        const firestoreMap = new Map<string, Team>();
         snapshot.forEach((docSnap) => {
           const data = docSnap.data() as Team;
           if (data && data.id) {
             const norm = normalizeTeamObject(data);
-            if (!deletedTeamIdsRef.current.has(norm.id) && !deletedTeamIdsRef.current.has(data.id)) {
-              firestoreTeams.push(norm);
+            if (!deletedTeamIdsRef.current.has(norm.id) && !deletedTeamIdsRef.current.has(data.id) && !deletedTeamIdsRef.current.has(docSnap.id)) {
+              const idSet = rawDocIdsByNormIdRef.current.get(norm.id) || new Set<string>();
+              idSet.add(docSnap.id);
+              idSet.add(data.id);
+              rawDocIdsByNormIdRef.current.set(norm.id, idSet);
+
+              const existing = firestoreMap.get(norm.id);
+              const shouldSet =
+                !existing ||
+                (existing.status === 'PENDING' && norm.status !== 'PENDING') ||
+                (existing.status === norm.status && docSnap.id === norm.id);
+              if (shouldSet) {
+                firestoreMap.set(norm.id, norm);
+              }
             }
           }
         });
+        const firestoreTeams = Array.from(firestoreMap.values());
         firestoreTeamsCacheRef.current = firestoreTeams;
 
         const combined =
@@ -431,6 +472,7 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             ? mergeTeamsList(firestoreTeams, pgTeamsCacheRef.current, deletedTeamIdsRef.current)
             : mergeTeamsList(pgTeamsCacheRef.current, StorageService.getTeams(), deletedTeamIdsRef.current);
 
+        teamsRef.current = combined;
         setTeams(combined);
         StorageService.saveTeams(combined);
       },
@@ -759,7 +801,7 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       );
     }
 
-    ApiService.registerTeam(payload).catch(() => {});
+    ApiService.registerTeam({ ...payload, id: assignedTeamId }).catch(() => {});
     // If a new team reuses an ID that was previously deleted, remove it from deleted IDs
     deletedTeamIdsRef.current.delete(newTeam.id);
     StorageService.removeDeletedTeamId(newTeam.id);
@@ -789,89 +831,168 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     status: PaymentStatus,
     rejectionReason?: string
   ) => {
-    let updatedTeamObj: Team | null = null;
+    const normTargetId = normalizeTeamId(teamId);
+    const existingTeam =
+      teamsRef.current.find((t) => t.id === normTargetId || t.id === teamId) ||
+      firestoreTeamsCacheRef.current.find((t) => t.id === normTargetId || t.id === teamId) ||
+      pgTeamsCacheRef.current.find((t) => t.id === normTargetId || t.id === teamId) ||
+      StorageService.getTeams().find((t) => normalizeTeamId(t.id) === normTargetId || t.id === teamId);
 
-    setTeams((prev) =>
-      prev.map((t) => {
-        if (t.id !== teamId) return t;
-        const updated: Team = {
-          ...t,
-          payment: {
-            ...t.payment,
-            status,
-            verifiedAt: status === 'VERIFIED' ? new Date().toISOString() : undefined,
-            rejectionReason: status === 'REJECTED' ? rejectionReason : undefined,
-          },
-          status:
-            status === 'VERIFIED' ? 'VERIFIED' : status === 'REJECTED' ? 'REJECTED' : 'PENDING',
-        };
-        updatedTeamObj = updated;
-        return updated;
-      })
-    );
-
-    if (updatedTeamObj) {
-      firestoreTeamsCacheRef.current = firestoreTeamsCacheRef.current.map((t) =>
-        t.id === teamId ? updatedTeamObj! : t
-      );
-      pgTeamsCacheRef.current = pgTeamsCacheRef.current.map((t) =>
-        t.id === teamId ? updatedTeamObj! : t
-      );
-      try {
-        await setDoc(doc(db, 'teams', teamId), sanitizeTeamForFirestore(updatedTeamObj));
-      } catch (err) {
-        console.error('Failed to update payment status in Cloud Firestore:', err);
-        handleFirestoreError(err, OperationType.UPDATE, `teams/${teamId}`);
-      }
-      ApiService.syncTeamToGoogleSheetClient(updatedTeamObj, 'update_team').catch(() => {});
+    if (!existingTeam) {
+      throw new Error(`Squad ${teamId} not found.`);
     }
 
-    ApiService.updatePaymentStatus(teamId, status, rejectionReason).catch(() => {});
+    const updatedTeamObj: Team = {
+      ...existingTeam,
+      id: normTargetId,
+      payment: {
+        ...existingTeam.payment,
+        status,
+        verifiedAt: status === 'VERIFIED' ? new Date().toISOString() : undefined,
+        rejectionReason: status === 'REJECTED' ? (rejectionReason || 'Mismatched transaction ID') : undefined,
+      },
+      status:
+        status === 'VERIFIED' ? 'VERIFIED' : status === 'REJECTED' ? 'REJECTED' : 'PENDING',
+    };
+
+    const nextTeams = teamsRef.current.map((t) =>
+      t.id === normTargetId || t.id === teamId ? updatedTeamObj : t
+    );
+    teamsRef.current = nextTeams;
+    firestoreTeamsCacheRef.current = firestoreTeamsCacheRef.current.map((t) =>
+      t.id === normTargetId || t.id === teamId ? updatedTeamObj : t
+    );
+    pgTeamsCacheRef.current = pgTeamsCacheRef.current.map((t) =>
+      t.id === normTargetId || t.id === teamId ? updatedTeamObj : t
+    );
+    StorageService.saveTeams(nextTeams);
+    setTeams(nextTeams);
+
+    const rawIds = new Set<string>([normTargetId]);
+    const trackedRawIds = rawDocIdsByNormIdRef.current.get(normTargetId);
+    if (trackedRawIds) {
+      trackedRawIds.forEach((id) => rawIds.add(id));
+    }
+    const match = String(normTargetId).match(/^TD4-TEAM-(\d+)$/i);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (!isNaN(num) && num <= 100) {
+        rawIds.add(`TD4-TEAM-${num + 100}`);
+      }
+    }
+
+    try {
+      await setDoc(doc(db, 'teams', normTargetId), sanitizeTeamForFirestore(updatedTeamObj));
+      // Clean up any legacy duplicate doc IDs (e.g. TD4-TEAM-101) so they never shadow the updated normalized doc
+      for (const rawId of rawIds) {
+        if (rawId !== normTargetId) {
+          await deleteDoc(doc(db, 'teams', rawId)).catch(() => {});
+        }
+      }
+      rawDocIdsByNormIdRef.current.set(normTargetId, new Set([normTargetId]));
+    } catch (err) {
+      console.error('Failed to update payment status in Cloud Firestore:', err);
+      handleFirestoreError(err, OperationType.UPDATE, `teams/${normTargetId}`);
+    }
+
+    await ApiService.updatePaymentStatus(normTargetId, status, rejectionReason).catch((err) => {
+      console.warn('Backend payment status sync warning:', err);
+    });
+    ApiService.syncTeamToGoogleSheetClient(updatedTeamObj, 'update_team').catch(() => {});
   };
 
   const updateTeamStatus = async (teamId: string, status: TeamStatus, notes?: string) => {
-    let updatedTeamObj: Team | null = null;
+    const normTargetId = normalizeTeamId(teamId);
+    const existingTeam =
+      teamsRef.current.find((t) => t.id === normTargetId || t.id === teamId) ||
+      firestoreTeamsCacheRef.current.find((t) => t.id === normTargetId || t.id === teamId) ||
+      pgTeamsCacheRef.current.find((t) => t.id === normTargetId || t.id === teamId) ||
+      StorageService.getTeams().find((t) => normalizeTeamId(t.id) === normTargetId || t.id === teamId);
 
-    setTeams((prev) =>
-      prev.map((t) => {
-        if (t.id !== teamId) return t;
-        const updated: Team = {
-          ...t,
-          status,
-          notes: notes !== undefined ? notes : t.notes,
-        };
-        updatedTeamObj = updated;
-        return updated;
-      })
-    );
-
-    if (updatedTeamObj) {
-      firestoreTeamsCacheRef.current = firestoreTeamsCacheRef.current.map((t) =>
-        t.id === teamId ? updatedTeamObj! : t
-      );
-      pgTeamsCacheRef.current = pgTeamsCacheRef.current.map((t) =>
-        t.id === teamId ? updatedTeamObj! : t
-      );
-      try {
-        await setDoc(doc(db, 'teams', teamId), sanitizeTeamForFirestore(updatedTeamObj));
-      } catch (err) {
-        console.error('Failed to update team status in Cloud Firestore:', err);
-        handleFirestoreError(err, OperationType.UPDATE, `teams/${teamId}`);
-      }
-      ApiService.syncTeamToGoogleSheetClient(updatedTeamObj, 'update_team').catch(() => {});
+    if (!existingTeam) {
+      throw new Error(`Squad ${teamId} not found.`);
     }
 
-    ApiService.updateTeamStatus(teamId, status, notes).catch(() => {});
+    const updatedTeamObj: Team = {
+      ...existingTeam,
+      id: normTargetId,
+      status,
+      notes: notes !== undefined ? notes : existingTeam.notes,
+      payment: {
+        ...existingTeam.payment,
+        status: status === 'VERIFIED' ? 'VERIFIED' : status === 'REJECTED' ? 'REJECTED' : existingTeam.payment.status,
+        verifiedAt:
+          status === 'VERIFIED'
+            ? existingTeam.payment.verifiedAt || new Date().toISOString()
+            : existingTeam.payment.verifiedAt,
+      },
+    };
+
+    const nextTeams = teamsRef.current.map((t) =>
+      t.id === normTargetId || t.id === teamId ? updatedTeamObj : t
+    );
+    teamsRef.current = nextTeams;
+    firestoreTeamsCacheRef.current = firestoreTeamsCacheRef.current.map((t) =>
+      t.id === normTargetId || t.id === teamId ? updatedTeamObj : t
+    );
+    pgTeamsCacheRef.current = pgTeamsCacheRef.current.map((t) =>
+      t.id === normTargetId || t.id === teamId ? updatedTeamObj : t
+    );
+    StorageService.saveTeams(nextTeams);
+    setTeams(nextTeams);
+
+    const rawIds = new Set<string>([normTargetId]);
+    const trackedRawIds = rawDocIdsByNormIdRef.current.get(normTargetId);
+    if (trackedRawIds) {
+      trackedRawIds.forEach((id) => rawIds.add(id));
+    }
+    const match = String(normTargetId).match(/^TD4-TEAM-(\d+)$/i);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (!isNaN(num) && num <= 100) {
+        rawIds.add(`TD4-TEAM-${num + 100}`);
+      }
+    }
+
+    try {
+      await setDoc(doc(db, 'teams', normTargetId), sanitizeTeamForFirestore(updatedTeamObj));
+      for (const rawId of rawIds) {
+        if (rawId !== normTargetId) {
+          await deleteDoc(doc(db, 'teams', rawId)).catch(() => {});
+        }
+      }
+      rawDocIdsByNormIdRef.current.set(normTargetId, new Set([normTargetId]));
+    } catch (err) {
+      console.error('Failed to update team status in Cloud Firestore:', err);
+      handleFirestoreError(err, OperationType.UPDATE, `teams/${normTargetId}`);
+    }
+
+    await ApiService.updateTeamStatus(normTargetId, status, notes).catch((err) => {
+      console.warn('Backend team status sync warning:', err);
+    });
+    ApiService.syncTeamToGoogleSheetClient(updatedTeamObj, 'update_team').catch(() => {});
   };
 
   const deleteTeam = async (teamId: string) => {
-    const idsToDelete = new Set<string>([teamId]);
-    const match = String(teamId || '').match(/^TD4-TEAM-(\d+)$/i);
+    const normTargetId = normalizeTeamId(teamId);
+    const idsToDelete = new Set<string>([teamId, normTargetId]);
+    const trackedRawIds = rawDocIdsByNormIdRef.current.get(normTargetId);
+    if (trackedRawIds) {
+      trackedRawIds.forEach((id) => idsToDelete.add(id));
+    }
+
+    const match = String(normTargetId || '').match(/^TD4-TEAM-(\d+)$/i);
     if (match) {
       const num = parseInt(match[1], 10);
       if (!isNaN(num)) {
-        if (num > 100) idsToDelete.add(`TD4-TEAM-${String(num - 100).padStart(2, '0')}`);
-        else idsToDelete.add(`TD4-TEAM-${num + 100}`);
+        idsToDelete.add(`TD4-TEAM-${num}`);
+        idsToDelete.add(`TD4-TEAM-${String(num).padStart(2, '0')}`);
+        if (num > 100) {
+          idsToDelete.add(`TD4-TEAM-${num - 100}`);
+          idsToDelete.add(`TD4-TEAM-${String(num - 100).padStart(2, '0')}`);
+        } else {
+          idsToDelete.add(`TD4-TEAM-${num + 100}`);
+        }
       }
     }
 
@@ -879,17 +1000,17 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       deletedTeamIdsRef.current.add(id);
       StorageService.addDeletedTeamId(id);
     });
+    rawDocIdsByNormIdRef.current.delete(normTargetId);
 
     firestoreTeamsCacheRef.current = firestoreTeamsCacheRef.current.filter(
       (t) => !idsToDelete.has(t.id)
     );
     pgTeamsCacheRef.current = pgTeamsCacheRef.current.filter((t) => !idsToDelete.has(t.id));
 
-    setTeams((prev) => {
-      const next = prev.filter((t) => !idsToDelete.has(t.id));
-      StorageService.saveTeams(next);
-      return next;
-    });
+    const nextTeams = teamsRef.current.filter((t) => !idsToDelete.has(t.id));
+    teamsRef.current = nextTeams;
+    StorageService.saveTeams(nextTeams);
+    setTeams(nextTeams);
 
     const unsynced = StorageService.getUnsyncedTeams().filter((t) => !idsToDelete.has(t.id));
     StorageService.saveUnsyncedTeams(unsynced);
@@ -901,8 +1022,11 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         console.error(`Failed to delete team ${id} from Cloud Firestore:`, err);
         handleFirestoreError(err, OperationType.DELETE, `teams/${id}`);
       }
-      ApiService.deleteTeam(id).catch(() => {});
     }
+
+    await Promise.allSettled(
+      Array.from(idsToDelete).map((id) => ApiService.deleteTeam(id))
+    );
   };
 
   const updateFixture = async (id: string, updates: Partial<MatchFixture>) => {

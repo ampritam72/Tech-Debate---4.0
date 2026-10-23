@@ -677,7 +677,7 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
             </div>
             <div>
               <span className="text-[11px] font-mono text-slate-400 block">Deadline</span>
-              <span className="font-display text-sm font-bold text-white block">Oct 22</span>
+              <span className="font-display text-sm font-bold text-white block">Oct 25</span>
               <span className="text-[10px] font-mono text-cyan-400">11:59 PM BST</span>
             </div>
           </div>
