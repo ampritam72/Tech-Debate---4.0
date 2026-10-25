@@ -26,6 +26,7 @@ import confetti from 'canvas-confetti';
 import { useTournament } from '../../context/TournamentContext';
 import { Validator } from '../../services/validator';
 import { PaymentMethod, Team } from '../../types';
+import { RegistrationClosedView } from './RegistrationClosedView';
 
 const BATCH_OPTIONS = [
   '32nd Batch',
@@ -64,6 +65,9 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Registration is officially closed
+  return <RegistrationClosedView onGoHome={handleGoHome} />;
   
   // 3-Step Wizard state: 1 = Team Info, 2 = Members, 3 = Payment & Confirmation
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);

@@ -244,6 +244,12 @@ app.post('/api/register', registrationLimiter, async (req, res) => {
   try {
     const { id: requestedId, name, batch, department, status: requestedStatus, members: memberList, payment, userUid, isSync } = req.body;
 
+    if (!isSync) {
+      return res.status(403).json({
+        error: 'Registration for Tech Debate 4.0 is officially closed. The deadline ended on 25 October 2026 at 11:59 PM BST.'
+      });
+    }
+
     if (!name || !batch || !memberList || memberList.length !== 3 || !payment) {
       return res.status(400).json({ error: 'Missing mandatory registration fields or roster count' });
     }

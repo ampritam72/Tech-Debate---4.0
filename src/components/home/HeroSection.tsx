@@ -8,6 +8,7 @@ import {
   Target,
   MapPin,
   CalendarDays,
+  Lock,
 } from 'lucide-react';
 import { TechDebateLogo } from '../common/TechDebateLogo';
 import { HeroBanner } from './HeroBanner';
@@ -98,19 +99,18 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <MagneticButton onClick={onRegisterClick}>
                 <div
                   className="
-                    clay-btn-primary
+                    clay-btn-secondary
                     group inline-flex w-full items-center justify-center
                     gap-2.5 rounded-2xl
                     px-7 py-3.5 sm:px-8 sm:py-4 text-base font-bold
-                    min-h-[48px] sm:w-auto cursor-pointer shadow-lg shadow-cyan-500/20
+                    min-h-[48px] sm:w-auto cursor-pointer
+                    border border-rose-500/40 text-rose-300 hover:text-white hover:border-rose-400
+                    shadow-lg shadow-rose-500/10
                     touch-manipulation active:scale-[0.98] transition-all
                   "
                 >
-                  <span>Register Your Team</span>
-                  <ArrowRight
-                    size={18}
-                    className="transition-transform duration-300 group-hover:translate-x-1"
-                  />
+                  <Lock size={18} className="text-rose-400" />
+                  <span>Registration Closed</span>
                 </div>
               </MagneticButton>
 

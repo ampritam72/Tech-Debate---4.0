@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Users } from 'lucide-react';
+import { ArrowRight, Users, Lock } from 'lucide-react';
 import { useTournament } from '../../context/TournamentContext';
 import { MagneticButton } from '../motion';
 
@@ -124,85 +124,71 @@ export const RegistrationCountdownCard: React.FC<RegistrationCountdownCardProps>
 
             {/* Text Information & Controls */}
             <div className="flex-1 min-w-0 flex flex-col justify-center items-center lg:items-start max-w-full">
-              <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-[0.2em] text-cyan-400 uppercase block mb-1 drop-shadow-[0_0_8px_rgba(0,229,255,0.6)]">
-                REGISTRATION COUNTDOWN
+              <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-[0.2em] text-rose-400 uppercase block mb-1 drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]">
+                REGISTRATION CLOSED
               </span>
 
               <h2 className="font-display text-2xl sm:text-3xl xl:text-4xl font-black text-white tracking-tight leading-tight">
-                Registration Closes In
+                Registration is Closed
               </h2>
 
               <p className="mt-1.5 text-xs sm:text-sm text-slate-300 leading-relaxed font-sans max-w-2xl">
-                Don't miss your chance to be part of Tech Debate 4.0. Form your team and secure your spot in the ultimate debate arena.
+                Online registration for Tech Debate 4.0 closed on 25 October at 11:59 PM BST. Thank you for the massive response! Kit distribution starts on 27 October.
               </p>
 
-              {/* Countdown Timer & Registration Button */}
+              {/* Status Info & Registration Closed Action Button */}
               <div className="mt-4 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 sm:gap-6 w-full lg:w-auto">
-                {/* 4 Countdown Digit Boxes */}
-                <div className="flex items-center gap-1 sm:gap-2.5 shrink-0 select-none">
-                  {/* Days */}
-                  <div className="px-1.5 sm:px-3.5 py-2 sm:py-2.5 rounded-2xl clay-card min-w-[42px] sm:min-w-[64px] text-center">
-                    <span className="font-mono text-base sm:text-2xl font-black text-white block tabular-nums leading-none">
-                      {String(timeLeft.days).padStart(2, '0')}
+                {/* Milestone Stat Badges */}
+                <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 select-none">
+                  <div className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl clay-card text-center border border-rose-500/30">
+                    <span className="font-mono text-xs sm:text-sm font-bold text-rose-300 block uppercase">
+                      CLOSED
                     </span>
-                    <span className="text-[7px] sm:text-[9px] font-mono font-bold text-cyan-300 uppercase tracking-wider mt-1 block">
-                      DAYS
-                    </span>
-                  </div>
-
-                  <span className="text-xs sm:text-lg font-black text-cyan-400 font-mono select-none drop-shadow-[0_0_8px_rgba(0,229,255,0.8)]">:</span>
-
-                  {/* Hours */}
-                  <div className="px-1.5 sm:px-3.5 py-2 sm:py-2.5 rounded-2xl clay-card min-w-[42px] sm:min-w-[64px] text-center">
-                    <span className="font-mono text-base sm:text-2xl font-black text-white block tabular-nums leading-none">
-                      {String(timeLeft.hours).padStart(2, '0')}
-                    </span>
-                    <span className="text-[7px] sm:text-[9px] font-mono font-bold text-cyan-300 uppercase tracking-wider mt-1 block">
-                      HOURS
+                    <span className="text-[7px] sm:text-[9px] font-mono font-bold text-slate-400 uppercase tracking-wider block">
+                      25 OCT
                     </span>
                   </div>
 
-                  <span className="text-xs sm:text-lg font-black text-cyan-400 font-mono select-none drop-shadow-[0_0_8px_rgba(0,229,255,0.8)]">:</span>
+                  <span className="text-xs sm:text-base font-black text-cyan-400 font-mono select-none">→</span>
 
-                  {/* Minutes */}
-                  <div className="px-1.5 sm:px-3.5 py-2 sm:py-2.5 rounded-2xl clay-card min-w-[42px] sm:min-w-[64px] text-center">
-                    <span className="font-mono text-base sm:text-2xl font-black text-white block tabular-nums leading-none">
-                      {String(timeLeft.minutes).padStart(2, '0')}
+                  <div className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl clay-card text-center border border-cyan-500/30">
+                    <span className="font-mono text-xs sm:text-sm font-bold text-cyan-300 block uppercase">
+                      KIT DIST.
                     </span>
-                    <span className="text-[7px] sm:text-[9px] font-mono font-bold text-cyan-300 uppercase tracking-wider mt-1 block">
-                      MINUTES
+                    <span className="text-[7px] sm:text-[9px] font-mono font-bold text-cyan-400 uppercase tracking-wider block">
+                      27 OCT
                     </span>
                   </div>
 
-                  <span className="text-xs sm:text-lg font-black text-cyan-400 font-mono select-none drop-shadow-[0_0_8px_rgba(0,229,255,0.8)]">:</span>
+                  <span className="text-xs sm:text-base font-black text-cyan-400 font-mono select-none">→</span>
 
-                  {/* Seconds */}
-                  <div className="px-1.5 sm:px-3.5 py-2 sm:py-2.5 rounded-2xl clay-card min-w-[42px] sm:min-w-[64px] text-center">
-                    <span className="font-mono text-base sm:text-2xl font-black text-cyan-300 block tabular-nums leading-none">
-                      {String(timeLeft.seconds).padStart(2, '0')}
+                  <div className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl clay-card text-center border border-blue-500/30">
+                    <span className="font-mono text-xs sm:text-sm font-bold text-blue-300 block uppercase">
+                      PLAY-OFF
                     </span>
-                    <span className="text-[7px] sm:text-[9px] font-mono font-bold text-cyan-300 uppercase tracking-wider mt-1 block">
-                      SECONDS
+                    <span className="text-[7px] sm:text-[9px] font-mono font-bold text-blue-400 uppercase tracking-wider block">
+                      28 OCT
                     </span>
                   </div>
                 </div>
 
-                {/* Register Button & Registered Teams Info */}
+                {/* Register Closed Button & Registered Teams Info */}
                 <div className="flex items-center gap-3 flex-wrap justify-center lg:justify-start">
                   <MagneticButton onClick={onRegisterClick}>
                     <div
                       className="
-                        clay-btn-primary
+                        clay-btn-secondary
                         min-h-[46px] sm:min-h-[48px] px-5 py-3 sm:px-7 sm:py-3.5 rounded-xl
                         text-xs sm:text-sm font-bold
                         flex items-center justify-center gap-2
                         whitespace-nowrap group cursor-pointer
-                        shadow-lg shadow-cyan-500/20
+                        border border-rose-500/40 text-rose-300 hover:text-white hover:border-rose-400
+                        shadow-lg shadow-rose-500/10
                         touch-manipulation active:scale-[0.98]
                       "
                     >
-                      <span>Register Now</span>
-                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                      <Lock className="w-4 h-4 text-rose-400" />
+                      <span>Registration Closed</span>
                     </div>
                   </MagneticButton>
 

@@ -684,6 +684,7 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
    * BEFORE returning success. Blocks any fake local-only success screen if offline or unreachable.
    */
   const registerTeam = async (payload: RegisterTeamPayload): Promise<Team> => {
+    throw new Error('Registration for Tech Debate 4.0 is officially closed. The deadline ended on 25 October 2026 at 11:59 PM BST.');
     let liveServerTeams: Team[] = [];
     try {
       const serverSnap = await withTimeout(

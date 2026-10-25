@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowUpRight, Menu, X } from 'lucide-react';
+import { ArrowUpRight, Menu, X, Lock } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { TechDebateLogo } from '../common/TechDebateLogo';
 import { MagneticButton } from '../motion';
@@ -92,26 +92,24 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right Action Block (Primary Register CTA) */}
         <div className="hidden lg:flex items-center gap-3">
-          {/* Primary Action Button: Register Now */}
+          {/* Primary Action Button: Reg Closed */}
           <MagneticButton>
             <a
               href="/registration"
               onClick={(e) => handleNavClick(e, 'registration')}
               className="
-                clay-btn-primary
-                group inline-flex items-center gap-2
+                clay-btn-secondary
+                group inline-flex items-center gap-1.5
                 rounded-xl
-                px-5 py-2.5
-                text-sm font-bold
+                px-4 py-2
+                text-xs sm:text-sm font-bold
                 cursor-pointer
-                shadow-md shadow-cyan-500/20
+                border border-rose-500/40 text-rose-300 hover:text-white hover:border-rose-400
+                shadow-sm
               "
             >
-              Register Now
-              <ArrowUpRight
-                size={17}
-                className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-              />
+              <Lock size={15} className="text-rose-400" />
+              <span>Reg Closed</span>
             </a>
           </MagneticButton>
         </div>

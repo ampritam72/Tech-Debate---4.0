@@ -1,5 +1,5 @@
 import React from 'react';
-import { RegistrationWizard } from '../components/registration/RegistrationWizard';
+import { RegistrationClosedView } from '../components/registration/RegistrationClosedView';
 
 interface RegistrationPageProps {
   onGoHome?: () => void;
@@ -8,7 +8,7 @@ interface RegistrationPageProps {
 export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onGoHome }) => {
   return (
     <div>
-      <RegistrationWizard onGoHome={onGoHome} />
+      <RegistrationClosedView onGoHome={onGoHome} />
     </div>
   );
 };

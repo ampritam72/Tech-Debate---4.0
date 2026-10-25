@@ -27,7 +27,8 @@ import {
   Zap,
   Bell,
   Play,
-  Download
+  Download,
+  Lock
 } from 'lucide-react';
 import { useTournament } from '../context/TournamentContext';
 
@@ -189,10 +190,10 @@ export const AboutPage: React.FC<AboutPageProps> = ({
             <div className="flex flex-wrap items-center gap-4 pt-2">
               <button
                 onClick={onRegisterClick}
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-cyan-500/25 transition-all cursor-pointer flex items-center gap-2"
+                className="px-6 py-3 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 hover:text-white font-bold text-xs sm:text-sm shadow-lg shadow-rose-500/10 transition-all cursor-pointer flex items-center gap-2"
               >
-                <span>Register Team Now</span>
-                <ArrowRight className="w-4 h-4" />
+                <Lock className="w-4 h-4 text-rose-400" />
+                <span>Registration Closed</span>
               </button>
 
               <button
@@ -863,10 +864,10 @@ export const AboutPage: React.FC<AboutPageProps> = ({
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 pt-2">
             <button
               onClick={onRegisterClick}
-              className="px-7 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-cyan-500/25 transition-all cursor-pointer flex items-center gap-2"
+              className="px-7 py-3 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 hover:text-white text-xs sm:text-sm font-bold shadow-lg shadow-rose-500/10 transition-all cursor-pointer flex items-center gap-2"
             >
-              <span>Register Your Team</span>
-              <ArrowRight className="w-4 h-4" />
+              <Lock className="w-4 h-4 text-rose-400" />
+              <span>Registration Closed</span>
             </button>
 
             <button
