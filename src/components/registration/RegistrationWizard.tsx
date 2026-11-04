@@ -27,6 +27,7 @@ import { useTournament } from '../../context/TournamentContext';
 import { Validator } from '../../services/validator';
 import { PaymentMethod, Team } from '../../types';
 import { RegistrationClosedView } from './RegistrationClosedView';
+import { usePortalSettings } from '../../config/portalSettings';
 
 const BATCH_OPTIONS = [
   '32nd Batch',
@@ -52,10 +53,15 @@ const SEMESTER_OPTIONS = [
 
 interface RegistrationWizardProps {
   onGoHome?: () => void;
+  onRegistrationCompleted?: () => void;
 }
 
-export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome }) => {
+export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({
+  onGoHome,
+  onRegistrationCompleted,
+}) => {
   const { teams, registerTeam } = useTournament();
+  const portalSettings = usePortalSettings();
 
   const handleGoHome = () => {
     if (onGoHome) {
@@ -66,9 +72,6 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Registration is officially closed
-  return <RegistrationClosedView onGoHome={handleGoHome} />;
-  
   // 3-Step Wizard state: 1 = Team Info, 2 = Members, 3 = Payment & Confirmation
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [activeMemberTab, setActiveMemberTab] = useState<number>(0); // 0, 1, 2 for member focus
@@ -128,23 +131,29 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('bKash');
   const [senderNumber, setSenderNumber] = useState('');
   const [transactionId, setTransactionId] = useState('');
-  const [amount] = useState(350);
+  const amount = portalSettings.registrationFeeBdt || 350;
+  const activeMfsNumber = portalSettings.mfsNumber || '01718169072';
 
-  // Official MFS recipient numbers (bKash / Nagad: 01718169072)
+  // Official MFS recipient numbers (bKash / Nagad)
   const MFS_ACCOUNTS: Record<'bKash' | 'Nagad', { number: string; recipientName: string; type: string; logo: string }> = {
     bKash: {
-      number: '01718169072',
+      number: activeMfsNumber,
       recipientName: 'Organizing Committee (Tech Debate 4.0)',
       type: 'Personal (Send Money)',
       logo: '/images/bikash.png'
     },
     Nagad: {
-      number: '01718169072',
+      number: activeMfsNumber,
       recipientName: 'Organizing Committee (Tech Debate 4.0)',
       type: 'Personal (Send Money)',
       logo: '/images/nagad.png'
     }
   };
+
+  // If Admin has turned Registration OFF, show RegistrationClosedView (unless the user just completed registration in this session)
+  if (!portalSettings.isRegistrationOpen && !showSuccessModal && !registeredTeam) {
+    return <RegistrationClosedView onGoHome={handleGoHome} />;
+  }
 
   // Auto-scroll and focus on the first field with a validation error
   const scrollToFirstError = (errs: Record<string, string>) => {
@@ -379,6 +388,7 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
       if (res) {
         setRegisteredTeam(res);
         setShowSuccessModal(true);
+        onRegistrationCompleted?.();
         try {
           confetti({
             particleCount: 120,
@@ -664,7 +674,7 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
             </div>
             <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-[#0a1a3a] border border-cyan-500/25 text-xs text-slate-200">
               <CreditCard className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-              <span>Registration Fee: BDT 350</span>
+              <span>Registration Fee: BDT {amount}</span>
             </div>
           </div>
         </div>
@@ -680,9 +690,13 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onGoHome
               <Calendar className="w-4 h-4" />
             </div>
             <div>
-              <span className="text-[11px] font-mono text-slate-400 block">Deadline</span>
-              <span className="font-display text-sm font-bold text-white block">Oct 25</span>
-              <span className="text-[10px] font-mono text-cyan-400">11:59 PM BST</span>
+              <span className="text-[11px] font-mono text-slate-400 block">Auto-Close Deadline</span>
+              <span className="font-display text-sm font-bold text-white block">
+                {portalSettings.registrationCloseDateLabel}
+              </span>
+              <span className="text-[10px] font-mono text-cyan-400">
+                {portalSettings.registrationCloseTimeLabel}
+              </span>
             </div>
           </div>
         </div>

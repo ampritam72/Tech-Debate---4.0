@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import * as dotenv from 'dotenv';
+import sharp from 'sharp';
 import { db, withDbRetry } from './src/db/index.ts';
 import crypto from 'crypto';
 import { 
@@ -245,9 +246,12 @@ app.post('/api/register', registrationLimiter, async (req, res) => {
     const { id: requestedId, name, batch, department, status: requestedStatus, members: memberList, payment, userUid, isSync } = req.body;
 
     if (!isSync) {
-      return res.status(403).json({
-        error: 'Registration for Tech Debate 4.0 is officially closed. The deadline ended on 25 October 2026 at 11:59 PM BST.'
-      });
+      const currentSettings = await loadPortalSettings();
+      if (!isServerRegistrationOpen(currentSettings)) {
+        return res.status(403).json({
+          error: `Registration for Tech Debate 4.0 is officially closed. The deadline ended on ${currentSettings.registrationCloseDateLabel || '25 October'} at ${currentSettings.registrationCloseTimeLabel || '11:59 PM BST'}.`
+        });
+      }
     }
 
     if (!name || !batch || !memberList || memberList.length !== 3 || !payment) {
@@ -1245,7 +1249,7 @@ app.get('/api/gallery', async (req, res) => {
   }
 });
 
-// POST /api/admin/gallery/upload - Upload one or multiple (.png, .jpg, .jpeg) pictures to public/gallery
+// POST /api/admin/gallery/upload - Upload one or multiple pictures to public/gallery with backend WebP compression
 app.post('/api/admin/gallery/upload', async (req, res) => {
   try {
     ensureGalleryDirectory();
@@ -1260,43 +1264,45 @@ app.post('/api/admin/gallery/upload', async (req, res) => {
       .replace(/[^a-z0-9_-]/g, '');
 
     const savedUrls: string[] = [];
+    let totalOriginalBytes = 0;
+    let totalCompressedBytes = 0;
 
     for (let i = 0; i < files.length; i++) {
       const item = files[i];
       const dataUrl = String(item?.dataUrl || '');
       const originalName = String(item?.fileName || `photo-${i + 1}.jpg`);
 
-      const match = dataUrl.match(/^data:image\/(png|jpe?g);base64,(.+)$/i);
+      const match = dataUrl.match(/^data:image\/(png|jpe?g|webp);base64,(.+)$/i);
       if (!match) {
         return res.status(400).json({
-          error: `Unsupported image format for "${originalName}". Only PNG, JPG, and JPEG formats are allowed.`,
+          error: `Unsupported image format for "${originalName}". PNG, JPG, JPEG, and WebP formats are allowed.`,
         });
       }
 
-      const mimeSubtype = match[1].toLowerCase();
       const base64Data = match[2];
-
-      // Preserve .png, .jpg, or .jpeg extension from original filename if valid
-      const origExtMatch = originalName.match(/\.(png|jpg|jpeg)$/i);
-      const ext = origExtMatch
-        ? origExtMatch[1].toLowerCase()
-        : mimeSubtype === 'png'
-        ? 'png'
-        : 'jpg';
+      const rawBuffer = Buffer.from(base64Data, 'base64');
+      totalOriginalBytes += rawBuffer.byteLength;
 
       const baseSlug = originalName
-        .replace(/\.(png|jpg|jpeg)$/i, '')
+        .replace(/\.(png|jpg|jpeg|webp)$/i, '')
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
         .slice(0, 32) || 'photo';
 
-      const uniqueFileName = `${safeCategory}-${Date.now()}-${i + 1}-${baseSlug}.${ext}`;
+      // Compress and convert to lightweight WebP on the backend via Sharp
+      const compressedBuffer = await sharp(rawBuffer, { failOnError: false })
+        .rotate()
+        .resize({ width: 1600, height: 1200, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 80, effort: 4 })
+        .toBuffer();
+
+      totalCompressedBytes += compressedBuffer.byteLength;
+
+      const uniqueFileName = `${safeCategory}-${Date.now()}-${i + 1}-${baseSlug}.webp`;
       const filePath = path.join(GALLERY_DIR, uniqueFileName);
 
-      const buffer = Buffer.from(base64Data, 'base64');
-      fs.writeFileSync(filePath, buffer);
-
+      fs.writeFileSync(filePath, compressedBuffer);
       savedUrls.push(`/gallery/${uniqueFileName}`);
     }
 
@@ -1314,11 +1320,21 @@ app.post('/api/admin/gallery/upload', async (req, res) => {
 
     await saveGallerySegments(updatedSegments);
 
+    const originalKB = Math.max(1, Math.round(totalOriginalBytes / 1024));
+    const compressedKB = Math.max(1, Math.round(totalCompressedBytes / 1024));
+    const savedPercent =
+      totalOriginalBytes > totalCompressedBytes
+        ? Math.round(((totalOriginalBytes - totalCompressedBytes) / totalOriginalBytes) * 100)
+        : 0;
+
     res.status(201).json({
       success: true,
       urls: savedUrls,
       segments: updatedSegments,
-      message: `Saved ${savedUrls.length} picture(s) to public/gallery`,
+      originalKB,
+      compressedKB,
+      savedPercent,
+      message: `Compressed & saved ${savedUrls.length} WebP picture(s) (${originalKB} KB → ${compressedKB} KB, ${savedPercent}% smaller)`,
     });
   } catch (error: any) {
     console.error('Gallery upload error:', error);
@@ -1421,13 +1437,13 @@ function buildMinimalRulebookPdfBuffer(): Buffer {
     '------------------------------------------------------------',
     '1. FORMAT: Asian Parliamentary (3 vs 3) - Government vs Opposition',
     '2. SQUAD: 3 Active Speakers per Team (CSE Undergraduates)',
-    '3. SUBSTANTIVE SPEECHES (4 MINUTES):',
+    '3. SUBSTANTIVE SPEECHES (5 MINUTES EACH - 3 SPEAKERS PER TEAM):',
     '   - 0:00 to 1:00 : Protected Time (No POIs)',
     '   - 1:00 Minute  : Single Bell (Floor Open for POIs)',
-    '   - 3:00 Minutes : Single Bell (1-Min Warning / POIs Closed)',
-    '   - 4:00 Minutes : Double Bell (Time Limit / 20s Grace Period)',
-    '   - 4:20+ Minutes: Continuous Bell (Overtime Penalty)',
-    '4. REPLY SPEECHES (3 MINUTES - 1st or 2nd Speaker Only, No POIs):',
+    '   - 4:00 Minutes : Single Bell (1-Min Warning / POIs Closed)',
+    '   - 5:00 Minutes : Double Bell (Time Limit / 20s Grace Period)',
+    '   - 5:20+ Minutes: Continuous Bell (Overtime Penalty)',
+    '4. REBUTTAL / REPLY SPEECH (3 MINUTES - 1st or 2nd Speaker Only, No POIs):',
     '   - 2:00 Minutes : Single Bell (1-Min Warning Bell)',
     '   - 3:00 Minutes : Double Bell (Time Limit / 20s Grace Period)',
     '   - 3:20+ Minutes: Continuous Bell (Overtime Penalty)',
@@ -1477,7 +1493,13 @@ function resolveDocumentPdfPath(docType: 'parliamentary' | 'conduct'): {
   ensureDefaultRulebookPdf();
   try {
     if (docType === 'conduct') {
-      const candidates = ['code-of-conduct.pdf', 'tournament-rules.pdf', 'conduct.pdf'];
+      const candidates = [
+        'rulebook-2.pdf',
+        'rulebook2.pdf',
+        'code-of-conduct.pdf',
+        'tournament-rules.pdf',
+        'conduct.pdf',
+      ];
       for (const name of candidates) {
         const full = path.join(PUBLIC_DIR, name);
         if (fs.existsSync(full)) {
@@ -1492,7 +1514,12 @@ function resolveDocumentPdfPath(docType: 'parliamentary' | 'conduct'): {
         downloadName: 'Tech-Debate-4.0-Code-of-Conduct-Tournament-Rules.pdf',
       };
     } else {
-      const candidates = ['parliamentary-rules.pdf', 'rulebook.pdf'];
+      const candidates = [
+        'rulebook-1.pdf',
+        'rulebook1.pdf',
+        'parliamentary-rules.pdf',
+        'rulebook.pdf',
+      ];
       for (const name of candidates) {
         const full = path.join(PUBLIC_DIR, name);
         if (fs.existsSync(full)) {
@@ -1541,13 +1568,482 @@ app.get('/api/rulebook/download', (req, res) => {
 });
 
 // ==========================================
+// 6.7 UNIFIED BACKEND WEBP IMAGE COMPRESSOR (ADMIN UPLOADS + DEVELOPER CODE ASSETS)
+// ==========================================
+
+const COMMITTEE_DIR = path.join(PUBLIC_DIR, 'images', 'committee');
+const COMMITTEE_MANIFEST_PATH = path.join(COMMITTEE_DIR, 'manifest.json');
+const HOF_DIR = path.join(PUBLIC_DIR, 'images', 'hof');
+
+function ensureImageDirectories() {
+  for (const dir of [PUBLIC_DIR, path.join(PUBLIC_DIR, 'images'), COMMITTEE_DIR, HOF_DIR]) {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  }
+}
+
+async function loadCommitteePhotoMap(): Promise<Record<string, string>> {
+  ensureImageDirectories();
+  try {
+    const raw = await getSetting('committee_photos_v1', '');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') return parsed;
+    }
+  } catch (err) {
+    console.warn('Failed to parse committee_photos_v1 from DB:', err);
+  }
+  try {
+    if (fs.existsSync(COMMITTEE_MANIFEST_PATH)) {
+      const disk = JSON.parse(fs.readFileSync(COMMITTEE_MANIFEST_PATH, 'utf-8'));
+      if (disk && typeof disk === 'object') return disk;
+    }
+  } catch (err) {
+    console.warn('Failed to read committee manifest from disk:', err);
+  }
+  return {};
+}
+
+async function saveCommitteePhotoMap(map: Record<string, string>) {
+  ensureImageDirectories();
+  try {
+    fs.writeFileSync(COMMITTEE_MANIFEST_PATH, JSON.stringify(map, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('Failed to write committee manifest to disk:', err);
+  }
+  await setSetting('committee_photos_v1', JSON.stringify(map));
+}
+
+const PORTAL_SETTINGS_PATH = path.join(PUBLIC_DIR, 'portal-settings.json');
+const COMMITTEE_ROSTER_PATH = path.join(COMMITTEE_DIR, 'roster.json');
+
+const SERVER_DEFAULT_PORTAL_SETTINGS = {
+  isRegistrationOpen: false,
+  autoCloseEnabled: true,
+  registrationOpenDateLabel: '17 October',
+  registrationCloseDateIso: '2026-10-25T23:59:59+06:00',
+  registrationCloseDateLabel: '25 October',
+  registrationCloseTimeLabel: '11:59 PM BST',
+  kitDistributionDateLabel: '27 October',
+  playoffStartDateLabel: '28 October',
+  registrationFeeBdt: 350,
+  mfsNumber: '01718169072',
+  timelineStages: [
+    { date: '03 September', title: 'Workshop - Debate Unlocked', stage: 'Stage 01', completed: true },
+    { date: '17 October', title: 'Registration Opens', stage: 'Stage 02', completed: true },
+    { date: '25 October', title: 'Registration Closes', stage: 'Stage 03', completed: true },
+    { date: '27 October', title: 'Kit Distribution', stage: 'Stage 04', active: true, completed: false },
+    { date: '28 October', title: 'Play-Off - Rounds of 32 Start', stage: 'Stage 05', completed: false },
+    { date: 'Upcoming', title: 'Round of 16', stage: 'Stage 06', completed: false },
+    { date: 'Upcoming', title: 'Quarter & Semi Finals', stage: 'Stage 07', completed: false },
+    { date: 'Upcoming', title: 'Grand Final', stage: 'Stage 08', completed: false },
+  ],
+};
+
+function isServerRegistrationOpen(settings: typeof SERVER_DEFAULT_PORTAL_SETTINGS): boolean {
+  if (!settings.isRegistrationOpen) return false;
+  if (settings.autoCloseEnabled !== false && settings.registrationCloseDateIso) {
+    const closeMs = new Date(settings.registrationCloseDateIso).getTime();
+    if (!isNaN(closeMs) && Date.now() >= closeMs) {
+      return false;
+    }
+  }
+  return true;
+}
+
+async function loadPortalSettings(): Promise<typeof SERVER_DEFAULT_PORTAL_SETTINGS> {
+  ensureImageDirectories();
+  try {
+    const raw = await getSetting('portal_settings_v1', '');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return { ...SERVER_DEFAULT_PORTAL_SETTINGS, ...parsed };
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to parse portal_settings_v1 from DB:', err);
+  }
+  try {
+    if (fs.existsSync(PORTAL_SETTINGS_PATH)) {
+      const disk = JSON.parse(fs.readFileSync(PORTAL_SETTINGS_PATH, 'utf-8'));
+      if (disk && typeof disk === 'object') {
+        return { ...SERVER_DEFAULT_PORTAL_SETTINGS, ...disk };
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to read portal-settings.json from disk:', err);
+  }
+  return SERVER_DEFAULT_PORTAL_SETTINGS;
+}
+
+async function savePortalSettings(settings: any) {
+  ensureImageDirectories();
+  const merged = { ...SERVER_DEFAULT_PORTAL_SETTINGS, ...settings };
+  try {
+    fs.writeFileSync(PORTAL_SETTINGS_PATH, JSON.stringify(merged, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('Failed to write portal-settings.json to disk:', err);
+  }
+  await setSetting('portal_settings_v1', JSON.stringify(merged));
+  return merged;
+}
+
+// GET /api/portal-settings - Retrieve Admin-controlled Registration Open/Close status & Dates
+app.get('/api/portal-settings', async (_req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    const settings = await loadPortalSettings();
+    res.json({ settings });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to load portal settings' });
+  }
+});
+
+// PUT /api/admin/portal-settings - Save Admin-controlled Registration Open/Close status & Dates
+app.put('/api/admin/portal-settings', async (req, res) => {
+  try {
+    const incoming = req.body?.settings || req.body;
+    if (!incoming || typeof incoming !== 'object') {
+      return res.status(400).json({ error: 'Valid settings object is required' });
+    }
+    const saved = await savePortalSettings(incoming);
+    res.json({ success: true, settings: saved, message: 'Portal registration & schedule settings updated!' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to save portal settings' });
+  }
+});
+
+async function loadCommitteeRoster(): Promise<{ leadership: any[] | null; students: any[] | null }> {
+  ensureImageDirectories();
+  try {
+    const raw = await getSetting('committee_roster_v1', '');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return {
+          leadership: Array.isArray(parsed.leadership) ? parsed.leadership : null,
+          students: Array.isArray(parsed.students) ? parsed.students : null,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to parse committee_roster_v1 from DB:', err);
+  }
+  try {
+    if (fs.existsSync(COMMITTEE_ROSTER_PATH)) {
+      const disk = JSON.parse(fs.readFileSync(COMMITTEE_ROSTER_PATH, 'utf-8'));
+      if (disk && typeof disk === 'object') {
+        return {
+          leadership: Array.isArray(disk.leadership) ? disk.leadership : null,
+          students: Array.isArray(disk.students) ? disk.students : null,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to read committee roster from disk:', err);
+  }
+  return { leadership: null, students: null };
+}
+
+async function saveCommitteeRoster(roster: { leadership: any[]; students: any[] }) {
+  ensureImageDirectories();
+  try {
+    fs.writeFileSync(COMMITTEE_ROSTER_PATH, JSON.stringify(roster, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('Failed to write committee roster to disk:', err);
+  }
+  await setSetting('committee_roster_v1', JSON.stringify(roster));
+}
+
+// GET /api/committee-roster - Retrieve dynamic Committee Roster + Photo Overrides
+app.get('/api/committee-roster', async (_req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    const [roster, photos] = await Promise.all([loadCommitteeRoster(), loadCommitteePhotoMap()]);
+    res.json({
+      leadership: roster.leadership,
+      students: roster.students,
+      photos,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to load committee roster' });
+  }
+});
+
+// PUT /api/admin/committee/roster - Save full Committee Roster (Add/Edit/Delete members, names, roles, batches)
+app.put('/api/admin/committee/roster', async (req, res) => {
+  try {
+    const { leadership, students } = req.body;
+    if (!Array.isArray(leadership) || !Array.isArray(students)) {
+      return res.status(400).json({ error: 'leadership and students arrays are required' });
+    }
+    await saveCommitteeRoster({ leadership, students });
+    const photos = await loadCommitteePhotoMap();
+    res.json({
+      success: true,
+      leadership,
+      students,
+      photos,
+      message: 'Committee roster updated successfully!',
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to save committee roster' });
+  }
+});
+
+// GET /api/committee-photos - Retrieve Admin-uploaded committee member photo overrides
+app.get('/api/committee-photos', async (_req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    const photos = await loadCommitteePhotoMap();
+    res.json({ photos });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to load committee photos' });
+  }
+});
+
+// POST /api/admin/committee/upload - Compress & save Committee Member photo as WebP on backend
+app.post('/api/admin/committee/upload', async (req, res) => {
+  try {
+    ensureImageDirectories();
+    const { memberId, dataUrl, fileName } = req.body;
+    if (!memberId || !dataUrl) {
+      return res.status(400).json({ error: 'memberId and dataUrl are required' });
+    }
+
+    const match = String(dataUrl).match(/^data:image\/([a-zA-Z0-9+.-]+);base64,(.+)$/);
+    if (!match) {
+      return res.status(400).json({ error: 'Invalid image dataUrl format' });
+    }
+
+    const rawBuffer = Buffer.from(match[2], 'base64');
+    const originalKB = Math.max(1, Math.round(rawBuffer.byteLength / 1024));
+
+    // Compress and resize to 4:5 portrait WebP on backend
+    const compressedBuffer = await sharp(rawBuffer, { failOnError: false })
+      .rotate()
+      .resize({ width: 720, height: 900, fit: 'cover', position: 'top', withoutEnlargement: true })
+      .webp({ quality: 82, effort: 4 })
+      .toBuffer();
+
+    const compressedKB = Math.max(1, Math.round(compressedBuffer.byteLength / 1024));
+    const savedPercent =
+      rawBuffer.byteLength > compressedBuffer.byteLength
+        ? Math.round(((rawBuffer.byteLength - compressedBuffer.byteLength) / rawBuffer.byteLength) * 100)
+        : 0;
+
+    const safeMemberId = String(memberId).replace(/[^a-zA-Z0-9_-]/g, '');
+    const outFileName = `${safeMemberId}-${Date.now()}.webp`;
+    const outFilePath = path.join(COMMITTEE_DIR, outFileName);
+    fs.writeFileSync(outFilePath, compressedBuffer);
+
+    const photoUrl = `/images/committee/${outFileName}`;
+    const currentMap = await loadCommitteePhotoMap();
+    currentMap[memberId] = photoUrl;
+    await saveCommitteePhotoMap(currentMap);
+
+    res.json({
+      success: true,
+      memberId,
+      photoUrl,
+      originalKB,
+      compressedKB,
+      savedPercent,
+      photos: currentMap,
+      message: `Compressed "${fileName || memberId}" on backend (${originalKB} KB → ${compressedKB} KB WebP, ${savedPercent}% smaller)`,
+    });
+  } catch (error: any) {
+    console.error('Committee photo upload error:', error);
+    res.status(500).json({ error: error.message || 'Failed to compress and upload committee photo' });
+  }
+});
+
+// DELETE /api/admin/committee/photo - Remove Admin-uploaded override for a Committee Member
+app.delete('/api/admin/committee/photo', async (req, res) => {
+  try {
+    const { memberId } = req.body;
+    if (!memberId) {
+      return res.status(400).json({ error: 'memberId is required' });
+    }
+    const currentMap = await loadCommitteePhotoMap();
+    const existingUrl = currentMap[memberId];
+    if (existingUrl && existingUrl.startsWith('/images/committee/')) {
+      const targetFile = path.join(COMMITTEE_DIR, path.basename(existingUrl));
+      if (fs.existsSync(targetFile)) {
+        try {
+          fs.unlinkSync(targetFile);
+        } catch {}
+      }
+    }
+    delete currentMap[memberId];
+    await saveCommitteePhotoMap(currentMap);
+    res.json({ success: true, photos: currentMap });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to remove committee photo' });
+  }
+});
+
+// POST /api/admin/compress-image - Generic backend WebP compressor for Hall of Fame & Admin uploads
+app.post('/api/admin/compress-image', async (req, res) => {
+  try {
+    ensureImageDirectories();
+    const { dataUrl, slot = 'hof', fileName = 'upload.jpg', maxWidth = 1000 } = req.body;
+    if (!dataUrl) {
+      return res.status(400).json({ error: 'dataUrl is required' });
+    }
+
+    const match = String(dataUrl).match(/^data:image\/([a-zA-Z0-9+.-]+);base64,(.+)$/);
+    if (!match) {
+      return res.status(400).json({ error: 'Invalid image dataUrl' });
+    }
+
+    const rawBuffer = Buffer.from(match[2], 'base64');
+    const originalKB = Math.max(1, Math.round(rawBuffer.byteLength / 1024));
+
+    const compressedBuffer = await sharp(rawBuffer, { failOnError: false })
+      .rotate()
+      .resize({
+        width: Number(maxWidth) || 1000,
+        height: Number(maxWidth) || 1000,
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 80, effort: 4 })
+      .toBuffer();
+
+    const compressedKB = Math.max(1, Math.round(compressedBuffer.byteLength / 1024));
+    const savedPercent =
+      rawBuffer.byteLength > compressedBuffer.byteLength
+        ? Math.round(((rawBuffer.byteLength - compressedBuffer.byteLength) / rawBuffer.byteLength) * 100)
+        : 0;
+
+    const safeSlot = String(slot).replace(/[^a-zA-Z0-9_-]/g, '') || 'hof';
+    const outName = `${safeSlot}-${Date.now()}.webp`;
+    const outPath = path.join(HOF_DIR, outName);
+    fs.writeFileSync(outPath, compressedBuffer);
+
+    const webpDataUrl = `data:image/webp;base64,${compressedBuffer.toString('base64')}`;
+    const publicUrl = `/images/hof/${outName}`;
+
+    res.json({
+      success: true,
+      webpDataUrl,
+      publicUrl,
+      originalKB,
+      compressedKB,
+      savedPercent,
+      message: `Backend compressed "${fileName}" (${originalKB} KB → ${compressedKB} KB WebP, ${savedPercent}% saved)`,
+    });
+  } catch (error: any) {
+    console.error('Backend image compression error:', error);
+    res.status(500).json({ error: error.message || 'Failed to compress image on backend' });
+  }
+});
+
+// Automatic Backend WebP Optimizer & Interceptor for Developer Code Images in public/
+const webpMemoryCache = new Map<string, { mtimeMs: number; buffer: Buffer }>();
+
+function resolveDeveloperImageCandidate(requestedRelPath: string): string | null {
+  const cleanRel = decodeURIComponent(requestedRelPath.split('?')[0]).replace(/^\/+/, '');
+  const exactPath = path.join(PUBLIC_DIR, cleanRel);
+  if (fs.existsSync(exactPath) && fs.statSync(exactPath).isFile()) {
+    return exactPath;
+  }
+
+  // If the developer placed .png, .jpg, .jpeg, or .webp with the same base name, resolve it automatically
+  const parsed = path.parse(exactPath);
+  for (const ext of ['.webp', '.png', '.jpg', '.jpeg', '.PNG', '.JPG', '.JPEG']) {
+    const candidate = path.join(parsed.dir, `${parsed.name}${ext}`);
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+async function getCompressedWebpBuffer(filePath: string): Promise<Buffer> {
+  const stat = fs.statSync(filePath);
+  const cached = webpMemoryCache.get(filePath);
+  if (cached && cached.mtimeMs === stat.mtimeMs) {
+    return cached.buffer;
+  }
+
+  const rawBuf = fs.readFileSync(filePath);
+  const webpBuf = await sharp(rawBuf, { failOnError: false })
+    .rotate()
+    .resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true })
+    .webp({ quality: 80, effort: 4 })
+    .toBuffer();
+
+  webpMemoryCache.set(filePath, { mtimeMs: stat.mtimeMs, buffer: webpBuf });
+
+  // Also write a .webp companion file on disk if the source was .png/.jpg/.jpeg
+  const parsed = path.parse(filePath);
+  if (parsed.ext.toLowerCase() !== '.webp') {
+    const companionWebp = path.join(parsed.dir, `${parsed.name}.webp`);
+    if (!fs.existsSync(companionWebp)) {
+      try {
+        fs.writeFileSync(companionWebp, webpBuf);
+      } catch {}
+    }
+  }
+
+  return webpBuf;
+}
+
+async function preOptimizePublicFolderImages() {
+  ensureImageDirectories();
+  const scanDir = async (dir: string) => {
+    if (!fs.existsSync(dir)) return;
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await scanDir(fullPath);
+      } else if (/\.(png|jpe?g|webp)$/i.test(entry.name)) {
+        try {
+          await getCompressedWebpBuffer(fullPath);
+        } catch (err) {
+          console.warn(`Skipped optimizing ${entry.name}:`, err);
+        }
+      }
+    }
+  };
+  await scanDir(PUBLIC_DIR);
+}
+
+// ==========================================
 // 7. VITE DEV SERVER / STATIC SERVING
 // ==========================================
 
 async function startServer() {
   ensureGalleryDirectory();
+  ensureImageDirectories();
   ensureDefaultRulebookPdf();
+  await preOptimizePublicFolderImages();
   await ensureAdminAccounts();
+
+  // Transparent Backend WebP Compression Middleware for all Developer & Admin images in public/
+  app.use(async (req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+    const reqPath = req.path;
+    if (!/\.(png|jpe?g|webp)$/i.test(reqPath)) return next();
+
+    try {
+      const resolvedFile = resolveDeveloperImageCandidate(reqPath);
+      if (!resolvedFile) return next();
+
+      const webpBuffer = await getCompressedWebpBuffer(resolvedFile);
+      res.setHeader('Content-Type', 'image/webp');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.setHeader('X-Image-Optimized', 'sharp-webp');
+      return res.send(webpBuffer);
+    } catch (err) {
+      return next();
+    }
+  });
 
   // Serve static public assets (including /gallery/* from public/gallery and any PDF in public/)
   app.use(express.static(path.join(__dirname, 'public')));

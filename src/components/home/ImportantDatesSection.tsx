@@ -1,6 +1,8 @@
 import React from 'react';
 import { motion, type Variants } from 'framer-motion';
 import { Calendar, Clock, ArrowRight, BookOpen, CheckCircle2 } from 'lucide-react';
+import { HOME_SECTION_BACKGROUNDS, getSectionBgStyle } from '../../config/sectionBackgrounds';
+import { usePortalSettings } from '../../config/portalSettings';
 
 interface ImportantDatesSectionProps {
   onViewScheduleClick: () => void;
@@ -29,16 +31,7 @@ const itemVariants: Variants = {
 export const ImportantDatesSection: React.FC<ImportantDatesSectionProps> = ({
   onViewScheduleClick,
 }) => {
-  const dates = [
-    { date: '03 September', title: 'Workshop - Debate Unlocked', stage: 'Stage 01', completed: true },
-    { date: '17 October', title: 'Registration Opens', stage: 'Stage 02', completed: true },
-    { date: '25 October', title: 'Registration Closes', stage: 'Stage 03', completed: true },
-    { date: '27 October', title: 'Kit Distribution', stage: 'Stage 04', active: true, completed: false },
-    { date: '28 October', title: 'Play-Off - Rounds of 32 Start', stage: 'Stage 05', completed: false },
-    { date: 'Upcoming', title: 'Round of 16', stage: 'Stage 06', completed: false },
-    { date: 'Upcoming', title: 'Quarter & Semi Finals', stage: 'Stage 07', completed: false },
-    { date: 'Upcoming', title: 'Grand Final', stage: 'Stage 08', completed: false },
-  ];
+  const { timelineStages: dates } = usePortalSettings();
 
   return (
     <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
@@ -47,6 +40,7 @@ export const ImportantDatesSection: React.FC<ImportantDatesSectionProps> = ({
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-50px' }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
+        style={getSectionBgStyle(HOME_SECTION_BACKGROUNDS.importantDatesPanel)}
         className="relative rounded-3xl clay-panel p-6 sm:p-8 lg:p-10 overflow-hidden"
       >
         {/* Ambient Top Glow Line */}
@@ -79,8 +73,8 @@ export const ImportantDatesSection: React.FC<ImportantDatesSectionProps> = ({
           </motion.button>
         </div>
 
-        {/* Grid: Left Timeline + Right Championship Notebook Display */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        {/* Grid: Left Timeline (Stage 1 to Stage 8) + Right Full-Height Roadmap Picture Frame */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
           
           {/* Left: Timeline Nodes with Staggered Entrance */}
           <motion.div
@@ -88,7 +82,7 @@ export const ImportantDatesSection: React.FC<ImportantDatesSectionProps> = ({
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, margin: '-40px' }}
-            className="lg:col-span-7 space-y-3.5 relative"
+            className="lg:col-span-7 space-y-3.5 relative flex flex-col justify-between"
           >
             {/* Vertical Connector Line */}
             <div className="absolute left-[9px] top-3 bottom-3 w-[2px] bg-gradient-to-b from-emerald-400 via-cyan-400 to-blue-500/60 pointer-events-none" />
@@ -146,50 +140,19 @@ export const ImportantDatesSection: React.FC<ImportantDatesSectionProps> = ({
             ))}
           </motion.div>
 
-          {/* Right: High-Tech Notebook & Protocol Graphics Card */}
-          <div className="lg:col-span-5 flex justify-center">
+          {/* Right: Stage 1 to Stage 8 Full-Height Roadmap Picture Frame (No Text, Full Opacity) */}
+          <div className="lg:col-span-5 flex items-stretch">
             <motion.div
-              whileHover={{ scale: 1.02, rotate: 0.5 }}
+              whileHover={{ scale: 1.01 }}
               transition={{ duration: 0.3 }}
-              className="w-full max-w-sm rounded-2xl clay-card-glow p-5 sm:p-6 relative overflow-hidden"
+              className="w-full h-full min-h-[420px] lg:min-h-0 rounded-2xl border border-cyan-400/40 overflow-hidden shadow-[0_12px_36px_rgba(6,182,212,0.22)] relative bg-[#04122d]"
             >
-              {/* Neon Bookmark Ribbon */}
-              <div className="absolute top-0 right-6 w-5 h-9 bg-gradient-to-b from-sky-400 to-blue-600 rounded-b-md shadow-[0_0_12px_rgba(14,165,233,0.5)]" />
-
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-cyan-500/15 border border-sky-200 dark:border-cyan-400/40 flex items-center justify-center text-sky-600 dark:text-cyan-300 shadow-sm">
-                  <BookOpen className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-display text-sm font-extrabold text-slate-900 dark:text-white">
-                    Championship Protocol
-                  </h3>
-                  <span className="text-[10px] font-mono text-sky-600 dark:text-cyan-400">
-                    EDITION 4.0 / 2026
-                  </span>
-                </div>
-              </div>
-
-              {/* Protocol Highlights */}
-              <div className="space-y-3 font-mono text-xs border-y border-sky-100 dark:border-cyan-500/20 py-4 my-2">
-                <div className="flex justify-between text-slate-600 dark:text-slate-300">
-                  <span className="text-slate-500 dark:text-slate-400">Opening Ceremony:</span>
-                  <span className="text-sky-700 dark:text-cyan-300 font-bold">10:00 AM</span>
-                </div>
-                <div className="flex justify-between text-slate-600 dark:text-slate-300">
-                  <span className="text-slate-500 dark:text-slate-400">Motion Release:</span>
-                  <span className="text-sky-700 dark:text-cyan-300 font-bold">15m Pre-match</span>
-                </div>
-                <div className="flex justify-between text-slate-600 dark:text-slate-300">
-                  <span className="text-slate-500 dark:text-slate-400">Auditorium Venue:</span>
-                  <span className="text-slate-900 dark:text-white font-bold">VU Main Campus</span>
-                </div>
-              </div>
-
-              <div className="pt-3 flex items-center justify-between text-xs">
-                <span className="text-slate-500 dark:text-slate-400 font-sans">Strict Attendance Mandatory</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
-              </div>
+              <img
+                src={HOME_SECTION_BACKGROUNDS.roadmapCard}
+                alt="Tech Debate 4.0 Stage 1 to Stage 8 Roadmap"
+                referrerPolicy="no-referrer"
+                className="w-full h-full lg:absolute lg:inset-0 object-cover object-center block opacity-100"
+              />
             </motion.div>
           </div>
 

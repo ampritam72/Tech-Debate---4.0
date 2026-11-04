@@ -101,39 +101,54 @@ export const MottoTypewriter: React.FC<MottoTypewriterProps> = ({
     phase === 'TYPE_L1' || phase === 'DELETE_L1' || phase === 'PAUSE';
 
   return (
-    <div className={`flex flex-col items-start select-none w-full ${className}`}>
-      {/* Line 1: Defend Your */}
-      <div className="inline-flex items-center flex-wrap align-baseline max-w-full leading-tight">
-        <span className="text-slate-900 dark:text-white drop-shadow-[0_2px_12px_rgba(255,255,255,0.2)] break-words">
-          {text1}
-        </span>
-        {showCursorOnLine1 && (
-          <motion.span
-            animate={{ opacity: [1, 0, 1] }}
-            transition={{ duration: 0.7, repeat: Infinity, ease: 'easeInOut' }}
-            className="inline-block font-mono text-cyan-400 dark:text-cyan-300 select-none ml-1 text-[0.88em] leading-none align-baseline drop-shadow-[0_0_12px_#00e5ff]"
-            aria-hidden="true"
-          >
-            _
-          </motion.span>
-        )}
+    <div className={`relative select-none w-full ${className}`}>
+      {/* Invisible Ghost Placeholder: Locks exact height (even when lines wrap on mobile) so page never jumps */}
+      <div className="invisible pointer-events-none select-none flex flex-col items-start w-full" aria-hidden="true">
+        <div className="inline-flex items-center flex-wrap align-baseline max-w-full leading-tight">
+          <span className="break-words">{line1Full}</span>
+          <span className="inline-block font-mono ml-1 text-[0.88em] leading-none align-baseline">_</span>
+        </div>
+        <div className="mt-1 sm:mt-2 inline-flex items-center flex-wrap align-baseline max-w-full leading-tight">
+          <span className="break-words">{line2Full}</span>
+          <span className="inline-block font-mono ml-1 text-[0.88em] leading-none align-baseline">_</span>
+        </div>
       </div>
 
-      {/* Line 2: Stance With Logic */}
-      <div className="mt-1 sm:mt-2 inline-flex items-center flex-wrap align-baseline max-w-full leading-tight">
-        <span className="bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-400 dark:from-cyan-300 dark:via-cyan-200 dark:to-blue-400 from-sky-600 via-cyan-500 to-blue-600 bg-clip-text text-transparent drop-shadow-[0_2px_14px_rgba(0,229,255,0.35)] break-words">
-          {text2}
-        </span>
-        {!showCursorOnLine1 && (
-          <motion.span
-            animate={{ opacity: [1, 0, 1] }}
-            transition={{ duration: 0.7, repeat: Infinity, ease: 'easeInOut' }}
-            className="inline-block font-mono text-cyan-400 dark:text-cyan-300 select-none ml-1 text-[0.88em] leading-none align-baseline drop-shadow-[0_0_12px_#00e5ff]"
-            aria-hidden="true"
-          >
-            _
-          </motion.span>
-        )}
+      {/* Live Animated Typewriter Layer */}
+      <div className="absolute inset-0 flex flex-col items-start w-full">
+        {/* Line 1: Defend Your */}
+        <div className="inline-flex items-center flex-wrap align-baseline max-w-full leading-tight">
+          <span className="text-slate-900 dark:text-white drop-shadow-[0_2px_12px_rgba(255,255,255,0.2)] break-words">
+            {text1}
+          </span>
+          {showCursorOnLine1 && (
+            <motion.span
+              animate={{ opacity: [1, 0, 1] }}
+              transition={{ duration: 0.7, repeat: Infinity, ease: 'easeInOut' }}
+              className="inline-block font-mono text-cyan-400 dark:text-cyan-300 select-none ml-1 text-[0.88em] leading-none align-baseline drop-shadow-[0_0_12px_#00e5ff]"
+              aria-hidden="true"
+            >
+              _
+            </motion.span>
+          )}
+        </div>
+
+        {/* Line 2: Stance With Logic */}
+        <div className="mt-1 sm:mt-2 inline-flex items-center flex-wrap align-baseline max-w-full leading-tight">
+          <span className="bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-400 dark:from-cyan-300 dark:via-cyan-200 dark:to-blue-400 from-sky-600 via-cyan-500 to-blue-600 bg-clip-text text-transparent drop-shadow-[0_2px_14px_rgba(0,229,255,0.35)] break-words">
+            {text2}
+          </span>
+          {!showCursorOnLine1 && (
+            <motion.span
+              animate={{ opacity: [1, 0, 1] }}
+              transition={{ duration: 0.7, repeat: Infinity, ease: 'easeInOut' }}
+              className="inline-block font-mono text-cyan-400 dark:text-cyan-300 select-none ml-1 text-[0.88em] leading-none align-baseline drop-shadow-[0_0_12px_#00e5ff]"
+              aria-hidden="true"
+            >
+              _
+            </motion.span>
+          )}
+        </div>
       </div>
     </div>
   );

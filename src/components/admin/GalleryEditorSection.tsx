@@ -136,11 +136,11 @@ export const GalleryEditorSection: React.FC = () => {
   const readFileAsDataUrl = (file: File): Promise<{ fileName: string; dataUrl: string }> => {
     return new Promise((resolve, reject) => {
       const isAllowed =
-        /\.(png|jpe?g)$/i.test(file.name) ||
-        ['image/png', 'image/jpeg', 'image/jpg'].includes(file.type.toLowerCase());
+        /\.(png|jpe?g|webp)$/i.test(file.name) ||
+        ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'].includes(file.type.toLowerCase());
 
       if (!isAllowed) {
-        reject(new Error(`"${file.name}" is not a PNG, JPG, or JPEG image.`));
+        reject(new Error(`"${file.name}" is not a PNG, JPG, JPEG, or WebP image.`));
         return;
       }
 
@@ -470,15 +470,15 @@ export const GalleryEditorSection: React.FC = () => {
                   )}
                 </div>
 
-                {/* Upload Multiple Pictures (.png, .jpg, .jpeg) */}
+                {/* Upload Multiple Pictures (Backend Auto-Compressed to WebP) */}
                 <div className="p-4 rounded-xl bg-slate-950/80 border border-cyan-500/30 space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                       <label className="block text-xs font-mono font-bold text-cyan-300 uppercase">
-                        Upload Multiple Pictures (.png, .jpg, .jpeg)
+                        Upload Multiple Pictures (Auto-Compressed to WebP on Backend)
                       </label>
                       <span className="text-[11px] font-mono text-slate-400">
-                        Select 1 or multiple images — auto-saves to <code className="text-cyan-300">public/gallery/</code>
+                        Select 1 or multiple images — backend compresses to WebP in <code className="text-cyan-300">public/gallery/</code>
                       </span>
                     </div>
 
@@ -497,12 +497,12 @@ export const GalleryEditorSection: React.FC = () => {
                     <Upload className="w-4 h-4 text-cyan-400" />
                     <span>
                       {uploadingCategory === seg.category
-                        ? 'Uploading & Saving to public/gallery...'
-                        : `Choose .PNG / .JPG / .JPEG Pictures for ${catMeta.label}`}
+                        ? 'Compressing to WebP & Saving on Backend...'
+                        : `Choose Pictures for ${catMeta.label}`}
                     </span>
                     <input
                       type="file"
-                      accept=".png,.jpg,.jpeg,image/png,image/jpeg"
+                      accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
                       multiple
                       disabled={uploadingCategory === seg.category}
                       onChange={(e) => {

@@ -640,7 +640,7 @@ export const NOTICES: Notice[] = [
     id: 'n2',
     title: 'Asian Parliamentary Format & Adjudication Rubric (40-40-20)',
     category: 'RULES',
-    content: 'All matches follow 3v3 Asian Parliamentary rules: 4-minute Constructive Speeches and 3-minute Reply Speeches (1st or 2nd speaker only). Adjudication follows Matter (40%), Manner (40%), and Method (20%).',
+    content: 'All matches follow 3v3 Asian Parliamentary rules: 3 speakers deliver 5-minute Constructive Speeches each, followed by a 3-minute Rebuttal / Reply Speech (যুক্তি খণ্ডন — 1st or 2nd speaker only). Adjudication follows Matter (40%), Manner (40%), and Method (20%).',
     isPinned: true,
     publishedAt: '2026-10-17T12:00:00Z'
   },
@@ -1048,15 +1048,15 @@ export const PARLIAMENTARY_RULES = {
     points: [
       'Each match consists of two teams: Government (Affirmative/Proposition) and Opposition (Negative).',
       'Each team comprises 3 debaters representing Prime Minister/Leader of Opposition, Deputy, and Government/Opposition Whip.',
-      'A 4-minute constructive speech is delivered by each debater, followed by a 3-minute Reply Speech by either the 1st or 2nd speaker.'
+      'A 5-minute substantive speech is delivered by each of the 3 speakers, followed by a 3-minute Rebuttal / Reply Speech by either the 1st or 2nd speaker.'
     ]
   },
   timing: {
     title: 'Speech Timing & Bell Management',
     description: 'Strict adherence to time is monitored by official timekeepers with timed bell signals:',
     points: [
-      'Constructive Speeches: 4 minutes per speaker (Single bell at 1st min & 3rd min, double bell at 4th min).',
-      'Reply Speeches: 3 minutes (Single bell at 2nd min, double bell at 3rd min; no POIs allowed).',
+      'Substantive Speeches: 5 minutes per speaker (Single bell at 1st min & 4th min, double bell at 5th min).',
+      'Rebuttal / Reply Speeches: 3 minutes (Single bell at 2nd min, double bell at 3rd min; no POIs allowed).',
       'Preparation Time: 15 minutes after motion release without internet or external consultation.',
       'Grace period of 20 seconds is permitted after the final bell before overtime penalties commence.'
     ]
@@ -1065,10 +1065,10 @@ export const PARLIAMENTARY_RULES = {
     title: 'Points of Information (POI) Protocol',
     description: 'Direct parliamentary engagement between speakers is governed by standard protocol:',
     points: [
-      'POIs are permitted only between the 1st and 3rd minute of substantive speeches (unprotected time).',
+      'POIs are permitted only between the 1st and 4th minute of substantive speeches (unprotected time).',
       'The debater offering the POI must stand up, address the chair ("Point of Information"), and await acceptance.',
       'The speaker holding the floor has full discretion to accept or decline.',
-      'POIs must not exceed 15 seconds. No POIs are permitted during Reply Speeches.'
+      'POIs must not exceed 15 seconds. No POIs are permitted during Rebuttal / Reply Speeches.'
     ]
   },
   judging: {

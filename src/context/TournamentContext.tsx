@@ -550,7 +550,43 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         snapshot.forEach((docSnap) => {
           const data = docSnap.data() as HallOfFameEdition;
           if (data && data.edition) {
-            hofUpdates.set(data.edition, data);
+            if (data.edition === '4.0') {
+              const hadPublicPhoto =
+                (Boolean(data.champion?.photoUrl) && !data.champion?.adminUploaded) ||
+                (Boolean(data.runnerUp?.photoUrl) && !data.runnerUp?.adminUploaded) ||
+                (Boolean(data.emergingTeam?.photoUrl) && !data.emergingTeam?.adminUploaded) ||
+                (Boolean(data.bestTournamentDebater?.photoUrl) && !data.bestTournamentDebater?.adminUploaded);
+
+              const cleanedData: HallOfFameEdition = {
+                ...data,
+                champion: {
+                  ...data.champion,
+                  photoUrl: data.champion?.adminUploaded ? data.champion.photoUrl : '',
+                },
+                runnerUp: {
+                  ...data.runnerUp,
+                  photoUrl: data.runnerUp?.adminUploaded ? data.runnerUp.photoUrl : '',
+                },
+                emergingTeam: data.emergingTeam
+                  ? {
+                      ...data.emergingTeam,
+                      photoUrl: data.emergingTeam?.adminUploaded ? data.emergingTeam.photoUrl : '',
+                    }
+                  : undefined,
+                bestTournamentDebater: {
+                  ...data.bestTournamentDebater,
+                  photoUrl: data.bestTournamentDebater?.adminUploaded ? data.bestTournamentDebater.photoUrl : '',
+                },
+              };
+              hofUpdates.set(data.edition, cleanedData);
+
+              // Automatically purge any public-uploaded photo from Firestore
+              if (hadPublicPhoto) {
+                setDoc(doc(db, 'hallOfFame', '4.0'), sanitizeHallOfFameForFirestore(cleanedData)).catch(() => {});
+              }
+            } else {
+              hofUpdates.set(data.edition, data);
+            }
           }
         });
         if (hofUpdates.size > 0) {

@@ -35,6 +35,7 @@ export interface HeroBannerProps {
 }
 
 const DEFAULT_CANDIDATES = [
+  '/assets/aistudio/hero-arena_f3b6da3b.webp',
   '/images/herobanner.png',
   '/herobanner.png',
   '/images/hero-debate.jpg',

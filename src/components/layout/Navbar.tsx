@@ -4,6 +4,7 @@ import { ArrowUpRight, Menu, X, Lock } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { TechDebateLogo } from '../common/TechDebateLogo';
 import { MagneticButton } from '../motion';
+import { usePortalSettings } from '../../config/portalSettings';
 
 export interface NavbarProps {
   currentTab?: string;
@@ -27,6 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const { isAuthenticated, logout } = useAdminAuth();
+  const portalSettings = usePortalSettings();
 
   const handleNavClick = (e: React.MouseEvent, tabId: string) => {
     e.preventDefault();
@@ -92,25 +94,43 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right Action Block (Primary Register CTA) */}
         <div className="hidden lg:flex items-center gap-3">
-          {/* Primary Action Button: Reg Closed */}
           <MagneticButton>
-            <a
-              href="/registration"
-              onClick={(e) => handleNavClick(e, 'registration')}
-              className="
-                clay-btn-secondary
-                group inline-flex items-center gap-1.5
-                rounded-xl
-                px-4 py-2
-                text-xs sm:text-sm font-bold
-                cursor-pointer
-                border border-rose-500/40 text-rose-300 hover:text-white hover:border-rose-400
-                shadow-sm
-              "
-            >
-              <Lock size={15} className="text-rose-400" />
-              <span>Reg Closed</span>
-            </a>
+            {portalSettings.isRegistrationOpen ? (
+              <a
+                href="/registration"
+                onClick={(e) => handleNavClick(e, 'registration')}
+                className="
+                  clay-btn-primary
+                  group inline-flex items-center gap-1.5
+                  rounded-xl
+                  px-4 py-2
+                  text-xs sm:text-sm font-bold text-white
+                  cursor-pointer
+                  shadow-lg shadow-cyan-500/20
+                "
+              >
+                <span>Register Now</span>
+                <ArrowUpRight size={15} />
+              </a>
+            ) : (
+              <a
+                href="/registration"
+                onClick={(e) => handleNavClick(e, 'registration')}
+                className="
+                  clay-btn-secondary
+                  group inline-flex items-center gap-1.5
+                  rounded-xl
+                  px-4 py-2
+                  text-xs sm:text-sm font-bold
+                  cursor-pointer
+                  border border-rose-500/40 text-rose-300 hover:text-white hover:border-rose-400
+                  shadow-sm
+                "
+              >
+                <Lock size={15} className="text-rose-400" />
+                <span>Reg Closed</span>
+              </a>
+            )}
           </MagneticButton>
         </div>
 
@@ -164,19 +184,36 @@ export const Navbar: React.FC<NavbarProps> = ({
             ))}
 
             <div className="pt-2 space-y-2">
-              <a
-                href="/registration"
-                onClick={(e) => handleNavClick(e, 'registration')}
-                className="
-                  flex items-center justify-center gap-2 min-h-[50px]
-                  rounded-xl clay-btn-primary
-                  px-6 py-3.5 font-bold text-sm sm:text-base text-white cursor-pointer
-                  touch-manipulation active:scale-[0.99] shadow-lg shadow-cyan-500/20
-                "
-              >
-                <span>Register Now (350tk)</span>
-                <ArrowUpRight size={18} />
-              </a>
+              {portalSettings.isRegistrationOpen ? (
+                <a
+                  href="/registration"
+                  onClick={(e) => handleNavClick(e, 'registration')}
+                  className="
+                    flex items-center justify-center gap-2 min-h-[50px]
+                    rounded-xl clay-btn-primary
+                    px-6 py-3.5 font-bold text-sm sm:text-base text-white cursor-pointer
+                    touch-manipulation active:scale-[0.99] shadow-lg shadow-cyan-500/20
+                  "
+                >
+                  <span>Register Now ({portalSettings.registrationFeeBdt}tk)</span>
+                  <ArrowUpRight size={18} />
+                </a>
+              ) : (
+                <a
+                  href="/registration"
+                  onClick={(e) => handleNavClick(e, 'registration')}
+                  className="
+                    flex items-center justify-center gap-2 min-h-[50px]
+                    rounded-xl clay-btn-secondary
+                    border border-rose-500/40 text-rose-300
+                    px-6 py-3.5 font-bold text-sm sm:text-base cursor-pointer
+                    touch-manipulation active:scale-[0.99]
+                  "
+                >
+                  <Lock size={18} className="text-rose-400" />
+                  <span>Registration Closed</span>
+                </a>
+              )}
             </div>
           </motion.div>
         )}

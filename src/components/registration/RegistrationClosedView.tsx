@@ -17,6 +17,7 @@ import {
   Award
 } from 'lucide-react';
 import { useTournament } from '../../context/TournamentContext';
+import { usePortalSettings } from '../../config/portalSettings';
 
 interface RegistrationClosedViewProps {
   onGoHome?: () => void;
@@ -24,6 +25,7 @@ interface RegistrationClosedViewProps {
 
 export const RegistrationClosedView: React.FC<RegistrationClosedViewProps> = ({ onGoHome }) => {
   const { teams } = useTournament();
+  const portalSettings = usePortalSettings();
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleGoHome = () => {
@@ -98,8 +100,10 @@ export const RegistrationClosedView: React.FC<RegistrationClosedViewProps> = ({ 
 
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-sans">
             The registration portal for <strong>Tech Debate 4.0</strong> closed on{' '}
-            <span className="text-cyan-300 font-mono font-semibold">25 October 2026 at 11:59 PM BST</span>.
-            Squad rosters and team member allocations across all CSE batches are now strictly locked.
+            <span className="text-cyan-300 font-mono font-semibold">
+              {portalSettings.registrationCloseDateLabel} at {portalSettings.registrationCloseTimeLabel}
+            </span>
+            . Squad rosters and team member allocations across all CSE batches are now strictly locked.
           </p>
 
           <p className="text-xs sm:text-sm text-slate-400 max-w-xl">
@@ -180,8 +184,8 @@ export const RegistrationClosedView: React.FC<RegistrationClosedViewProps> = ({ 
             <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
               <Shirt className="w-5 h-5" />
             </div>
-            <span className="px-2.5 py-1 rounded-full clay-badge text-[10px] font-mono font-bold text-cyan-300">
-              STAGE 04 • 27 OCT
+            <span className="px-2.5 py-1 rounded-full clay-badge text-[10px] font-mono font-bold text-cyan-300 uppercase">
+              STAGE 04 • {portalSettings.kitDistributionDateLabel}
             </span>
           </div>
 
@@ -190,7 +194,7 @@ export const RegistrationClosedView: React.FC<RegistrationClosedViewProps> = ({ 
           </h3>
 
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
-            Registered team leaders will collect official tournament delegate badges, kit folders, debate guidelines, and batch identification tags on <strong>27 October</strong> at the CSE Department, Varendra University.
+            Registered team leaders will collect official tournament delegate badges, kit folders, debate guidelines, and batch identification tags on <strong>{portalSettings.kitDistributionDateLabel}</strong> at the CSE Department, Varendra University.
           </p>
 
           <div className="pt-2 text-xs font-mono text-cyan-400 flex items-center gap-1.5">
@@ -205,8 +209,8 @@ export const RegistrationClosedView: React.FC<RegistrationClosedViewProps> = ({ 
             <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-400/40 flex items-center justify-center text-blue-300">
               <Award className="w-5 h-5" />
             </div>
-            <span className="px-2.5 py-1 rounded-full clay-badge text-[10px] font-mono font-bold text-blue-300">
-              STAGE 05 • 28 OCT
+            <span className="px-2.5 py-1 rounded-full clay-badge text-[10px] font-mono font-bold text-blue-300 uppercase">
+              STAGE 05 • {portalSettings.playoffStartDateLabel}
             </span>
           </div>
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Bell, Clock, Download, FileText, Play, ShieldCheck } from 'lucide-react';
+import { HOME_SECTION_BACKGROUNDS, getSectionBgStyle } from '../../config/sectionBackgrounds';
 
 interface RulebookAndTimerSectionProps {
   onOpenTimerPage: () => void;
@@ -23,6 +24,7 @@ export const RulebookAndTimerSection: React.FC<RulebookAndTimerSectionProps> = (
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-50px' }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
+        style={getSectionBgStyle(HOME_SECTION_BACKGROUNDS.rulebookTimerPanel)}
         className="relative rounded-3xl clay-panel p-6 sm:p-8 lg:p-10 overflow-hidden"
       >
         {/* Ambient Top Glow Line */}
@@ -105,7 +107,7 @@ export const RulebookAndTimerSection: React.FC<RulebookAndTimerSectionProps> = (
               </div>
 
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                Full-screen laptop timer automatically rings 1st Bell (1:00), Warning Bell (3:00 / 2:00), Final Double Bell (4:00 / 3:00), and Overtime Bell.
+                Full-screen laptop timer automatically rings 1st Bell (1:00), Warning Bell (4:00 / 2:00), Final Double Bell (5:00 / 3:00), and Overtime Bell.
               </p>
             </div>
           </div>

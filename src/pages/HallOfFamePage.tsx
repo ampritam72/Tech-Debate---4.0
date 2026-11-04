@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trophy, Medal, Star, Award, Crown, Sparkles, Upload, Image as ImageIcon, Trash2, Shield } from 'lucide-react';
+import { Trophy, Medal, Star, Award, Crown, Sparkles, Image as ImageIcon, Shield } from 'lucide-react';
 import { SectionHeader } from '../components/common/SectionHeader';
 import { GlassCard } from '../components/common/GlassCard';
 import { useTournament } from '../context/TournamentContext';
@@ -10,42 +10,9 @@ import {
   CommitteeMemberData,
 } from '../data/committeeMembers';
 
-// Client-side image compressor so uploaded prize photos persist smoothly in Cloud Firestore & localStorage
-async function compressImageFile(file: File, maxWidth = 900, quality = 0.82): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          resolve(String(e.target?.result || ''));
-          return;
-        }
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.onerror = reject;
-      img.src = String(e.target?.result || '');
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
 export const HallOfFamePage: React.FC = () => {
-  const { hallOfFame, updateHallOfFame4 } = useTournament();
+  const { hallOfFame } = useTournament();
   const [selectedEdition, setSelectedEdition] = useState<'1.0' | '2.0' | '3.0' | '4.0'>('4.0');
-  const [uploadingKey, setUploadingKey] = useState<string | null>(null);
 
   const editionData = hallOfFame.find(h => h.edition === selectedEdition) || hallOfFame[3];
 
@@ -56,53 +23,12 @@ export const HallOfFamePage: React.FC = () => {
     photoUrl: '',
   };
 
-  const handlePrizePhotoUpload = async (
-    target: 'champion' | 'runnerUp' | 'emergingTeam' | 'bestTournamentDebater',
-    file?: File | null
-  ) => {
-    if (!file) return;
-    setUploadingKey(target);
-    try {
-      const dataUrl = await compressImageFile(file);
-      if (target === 'champion') {
-        await updateHallOfFame4({
-          champion: { ...editionData.champion, photoUrl: dataUrl },
-        });
-      } else if (target === 'runnerUp') {
-        await updateHallOfFame4({
-          runnerUp: { ...editionData.runnerUp, photoUrl: dataUrl },
-        });
-      } else if (target === 'emergingTeam') {
-        await updateHallOfFame4({
-          emergingTeam: { ...emergingTeamData, photoUrl: dataUrl },
-        });
-      } else if (target === 'bestTournamentDebater') {
-        await updateHallOfFame4({
-          bestTournamentDebater: { ...editionData.bestTournamentDebater, photoUrl: dataUrl },
-        });
-      }
-    } catch (err) {
-      console.error('Failed to upload prize photo:', err);
-    } finally {
-      setUploadingKey(null);
-    }
-  };
-
-  const handleRemovePrizePhoto = async (
-    target: 'champion' | 'runnerUp' | 'emergingTeam' | 'bestTournamentDebater'
-  ) => {
-    if (target === 'champion') {
-      await updateHallOfFame4({ champion: { ...editionData.champion, photoUrl: '' } });
-    } else if (target === 'runnerUp') {
-      await updateHallOfFame4({ runnerUp: { ...editionData.runnerUp, photoUrl: '' } });
-    } else if (target === 'emergingTeam') {
-      await updateHallOfFame4({ emergingTeam: { ...emergingTeamData, photoUrl: '' } });
-    } else if (target === 'bestTournamentDebater') {
-      await updateHallOfFame4({
-        bestTournamentDebater: { ...editionData.bestTournamentDebater, photoUrl: '' },
-      });
-    }
-  };
+  const championPhoto = (editionData.champion as any)?.adminUploaded ? editionData.champion.photoUrl : '';
+  const runnerUpPhoto = (editionData.runnerUp as any)?.adminUploaded ? editionData.runnerUp.photoUrl : '';
+  const emergingPhoto = (emergingTeamData as any)?.adminUploaded ? emergingTeamData.photoUrl : '';
+  const bestDebaterPhoto = (editionData.bestTournamentDebater as any)?.adminUploaded
+    ? editionData.bestTournamentDebater.photoUrl
+    : '';
 
   // Match historical committee members to their full photo card data when available
   const allKnownCommitteeMembers = [...LEADERSHIP_CARDS, ...SORTED_STUDENT_MEMBERS];
@@ -182,36 +108,14 @@ export const HallOfFamePage: React.FC = () => {
                 </span>
               </div>
 
-              {/* Picture Showcase & Upload Area */}
-              <div className="relative aspect-[16/10] w-full rounded-2xl overflow-hidden bg-[#061128] border border-amber-400/30 mb-5 group">
-                {editionData.champion.photoUrl ? (
-                  <>
-                    <img
-                      src={editionData.champion.photoUrl}
-                      alt={editionData.champion.teamName}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-3">
-                      <label className="px-3.5 py-2 rounded-xl bg-amber-400 text-slate-950 font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-lg">
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>{uploadingKey === 'champion' ? 'Uploading...' : 'Change Picture'}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => handlePrizePhotoUpload('champion', e.target.files?.[0])}
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => handleRemovePrizePhoto('champion')}
-                        className="p-2 rounded-xl bg-rose-600 text-white hover:bg-rose-500 cursor-pointer"
-                        title="Remove Picture"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </>
+              {/* Picture Showcase Area (Managed Exclusively via Admin Dashboard) */}
+              <div className="relative aspect-[16/10] w-full rounded-2xl overflow-hidden bg-[#061128] border border-amber-400/30 mb-5">
+                {championPhoto ? (
+                  <img
+                    src={championPhoto}
+                    alt={editionData.champion.teamName}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center space-y-2.5">
                     <div className="w-12 h-12 rounded-full bg-amber-500/15 border border-dashed border-amber-400/50 flex items-center justify-center text-amber-300">
@@ -225,16 +129,6 @@ export const HallOfFamePage: React.FC = () => {
                         Official Winner Photo Showcase
                       </span>
                     </div>
-                    <label className="mt-1 px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-all">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>{uploadingKey === 'champion' ? 'Uploading...' : 'Upload Picture'}</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => handlePrizePhotoUpload('champion', e.target.files?.[0])}
-                      />
-                    </label>
                   </div>
                 )}
               </div>
@@ -279,36 +173,14 @@ export const HallOfFamePage: React.FC = () => {
                 </span>
               </div>
 
-              {/* Picture Showcase & Upload Area */}
-              <div className="relative aspect-[16/10] w-full rounded-2xl overflow-hidden bg-[#061128] border border-sky-400/30 mb-5 group">
-                {editionData.runnerUp.photoUrl ? (
-                  <>
-                    <img
-                      src={editionData.runnerUp.photoUrl}
-                      alt={editionData.runnerUp.teamName}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-3">
-                      <label className="px-3.5 py-2 rounded-xl bg-cyan-400 text-slate-950 font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-lg">
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>{uploadingKey === 'runnerUp' ? 'Uploading...' : 'Change Picture'}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => handlePrizePhotoUpload('runnerUp', e.target.files?.[0])}
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => handleRemovePrizePhoto('runnerUp')}
-                        className="p-2 rounded-xl bg-rose-600 text-white hover:bg-rose-500 cursor-pointer"
-                        title="Remove Picture"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </>
+              {/* Picture Showcase Area (Managed Exclusively via Admin Dashboard) */}
+              <div className="relative aspect-[16/10] w-full rounded-2xl overflow-hidden bg-[#061128] border border-sky-400/30 mb-5">
+                {runnerUpPhoto ? (
+                  <img
+                    src={runnerUpPhoto}
+                    alt={editionData.runnerUp.teamName}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center space-y-2.5">
                     <div className="w-12 h-12 rounded-full bg-sky-500/15 border border-dashed border-sky-400/50 flex items-center justify-center text-sky-300">
@@ -322,16 +194,6 @@ export const HallOfFamePage: React.FC = () => {
                         Official Runners Up Photo Showcase
                       </span>
                     </div>
-                    <label className="mt-1 px-4 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/50 text-sky-300 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-all">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>{uploadingKey === 'runnerUp' ? 'Uploading...' : 'Upload Picture'}</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => handlePrizePhotoUpload('runnerUp', e.target.files?.[0])}
-                      />
-                    </label>
                   </div>
                 )}
               </div>
@@ -376,36 +238,14 @@ export const HallOfFamePage: React.FC = () => {
                 </span>
               </div>
 
-              {/* Picture Showcase & Upload Area */}
-              <div className="relative aspect-[16/10] w-full rounded-2xl overflow-hidden bg-[#061128] border border-emerald-400/30 mb-5 group">
-                {emergingTeamData.photoUrl ? (
-                  <>
-                    <img
-                      src={emergingTeamData.photoUrl}
-                      alt={emergingTeamData.teamName}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-3">
-                      <label className="px-3.5 py-2 rounded-xl bg-emerald-400 text-slate-950 font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-lg">
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>{uploadingKey === 'emergingTeam' ? 'Uploading...' : 'Change Picture'}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => handlePrizePhotoUpload('emergingTeam', e.target.files?.[0])}
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => handleRemovePrizePhoto('emergingTeam')}
-                        className="p-2 rounded-xl bg-rose-600 text-white hover:bg-rose-500 cursor-pointer"
-                        title="Remove Picture"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </>
+              {/* Picture Showcase Area (Managed Exclusively via Admin Dashboard) */}
+              <div className="relative aspect-[16/10] w-full rounded-2xl overflow-hidden bg-[#061128] border border-emerald-400/30 mb-5">
+                {emergingPhoto ? (
+                  <img
+                    src={emergingPhoto}
+                    alt={emergingTeamData.teamName}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center space-y-2.5">
                     <div className="w-12 h-12 rounded-full bg-emerald-500/15 border border-dashed border-emerald-400/50 flex items-center justify-center text-emerald-300">
@@ -419,16 +259,6 @@ export const HallOfFamePage: React.FC = () => {
                         Official Emerging Squad Photo Showcase
                       </span>
                     </div>
-                    <label className="mt-1 px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/50 text-emerald-300 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-all">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>{uploadingKey === 'emergingTeam' ? 'Uploading...' : 'Upload Picture'}</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => handlePrizePhotoUpload('emergingTeam', e.target.files?.[0])}
-                      />
-                    </label>
                   </div>
                 )}
               </div>
@@ -473,36 +303,14 @@ export const HallOfFamePage: React.FC = () => {
                 </span>
               </div>
 
-              {/* Picture Showcase & Upload Area */}
-              <div className="relative aspect-[16/10] w-full rounded-2xl overflow-hidden bg-[#061128] border border-cyan-400/30 mb-5 group">
-                {editionData.bestTournamentDebater.photoUrl ? (
-                  <>
-                    <img
-                      src={editionData.bestTournamentDebater.photoUrl}
-                      alt={editionData.bestTournamentDebater.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-3">
-                      <label className="px-3.5 py-2 rounded-xl bg-cyan-400 text-slate-950 font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-lg">
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>{uploadingKey === 'bestTournamentDebater' ? 'Uploading...' : 'Change Picture'}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => handlePrizePhotoUpload('bestTournamentDebater', e.target.files?.[0])}
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => handleRemovePrizePhoto('bestTournamentDebater')}
-                        className="p-2 rounded-xl bg-rose-600 text-white hover:bg-rose-500 cursor-pointer"
-                        title="Remove Picture"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </>
+              {/* Picture Showcase Area (Managed Exclusively via Admin Dashboard) */}
+              <div className="relative aspect-[16/10] w-full rounded-2xl overflow-hidden bg-[#061128] border border-cyan-400/30 mb-5">
+                {bestDebaterPhoto ? (
+                  <img
+                    src={bestDebaterPhoto}
+                    alt={editionData.bestTournamentDebater.name}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center space-y-2.5">
                     <div className="w-12 h-12 rounded-full bg-cyan-500/15 border border-dashed border-cyan-400/50 flex items-center justify-center text-cyan-300">
@@ -516,16 +324,6 @@ export const HallOfFamePage: React.FC = () => {
                         Official Best Tournament Debater Photo
                       </span>
                     </div>
-                    <label className="mt-1 px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-300 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-all">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>{uploadingKey === 'bestTournamentDebater' ? 'Uploading...' : 'Upload Picture'}</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => handlePrizePhotoUpload('bestTournamentDebater', e.target.files?.[0])}
-                      />
-                    </label>
                   </div>
                 )}
               </div>

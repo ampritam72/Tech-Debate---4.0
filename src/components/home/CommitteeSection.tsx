@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Users, ArrowRight, ShieldCheck } from 'lucide-react';
-import { LEADERSHIP_CARDS, CommitteeMemberData } from '../../data/committeeMembers';
+import { CommitteeMemberData, useCommitteeRoster } from '../../data/committeeMembers';
 import { SpotlightCard, StaggerContainer, StaggerItem } from '../motion';
 
 interface CommitteeSectionProps {
@@ -9,24 +9,35 @@ interface CommitteeSectionProps {
 
 interface HomeMemberCardProps {
   member: CommitteeMemberData;
+  adminOverrideUrl?: string;
   onClick: () => void;
 }
 
-const HomeMemberCard: React.FC<HomeMemberCardProps> = ({ member, onClick }) => {
+const HomeMemberCard: React.FC<HomeMemberCardProps> = ({ member, adminOverrideUrl, onClick }) => {
   const [candidateIdx, setCandidateIdx] = useState(0);
   const [hasError, setHasError] = useState(false);
 
-  // Build candidate image urls
+  useEffect(() => {
+    setCandidateIdx(0);
+    setHasError(false);
+  }, [adminOverrideUrl]);
+
+  // Build candidate image urls (prioritizing Admin-uploaded WebP photo)
   const candidates = useMemo(() => {
     const list: string[] = [];
+    if (adminOverrideUrl) {
+      list.push(adminOverrideUrl);
+    }
     if (member.photoCandidates && member.photoCandidates.length > 0) {
-      list.push(...member.photoCandidates);
+      for (const c of member.photoCandidates) {
+        if (!list.includes(c)) list.push(c);
+      }
     }
     if (member.photoUrl && !list.includes(member.photoUrl)) {
       list.push(member.photoUrl);
     }
     return list;
-  }, [member]);
+  }, [member, adminOverrideUrl]);
 
   const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=003882&color=00d2ff&size=512`;
   const currentPhotoSrc = !hasError && candidates[candidateIdx] ? candidates[candidateIdx] : fallbackAvatar;
@@ -91,8 +102,9 @@ const HomeMemberCard: React.FC<HomeMemberCardProps> = ({ member, onClick }) => {
 };
 
 export const CommitteeSection: React.FC<CommitteeSectionProps> = ({ onViewAllClick }) => {
-  // 1st 4 leadership members: Arnab Sir, Nuhan Sir, Pritam, Farhan
-  const leadershipMembers = LEADERSHIP_CARDS.slice(0, 4);
+  const { leadership, photoOverrides } = useCommitteeRoster();
+  // Top 4 leadership members shown on Home Page
+  const leadershipMembers = leadership.slice(0, 4);
 
   return (
     <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
@@ -130,6 +142,7 @@ export const CommitteeSection: React.FC<CommitteeSectionProps> = ({ onViewAllCli
           <StaggerItem key={member.id} preset="slideUp">
             <HomeMemberCard
               member={member}
+              adminOverrideUrl={photoOverrides[member.id]}
               onClick={onViewAllClick}
             />
           </StaggerItem>

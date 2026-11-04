@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Users, Clock, FileText, ArrowRight, Scale, ShieldCheck } from 'lucide-react';
 import { SpotlightCard, MagneticButton, StaggerContainer, StaggerItem } from '../motion';
+import { HOME_SECTION_BACKGROUNDS, getSectionBgStyle } from '../../config/sectionBackgrounds';
 
 interface KeyInformationSectionProps {
   onViewRulesClick: (ruleId?: string) => void;
@@ -28,9 +29,9 @@ export const KeyInformationSection: React.FC<KeyInformationSectionProps> = ({
     {
       id: 'timings',
       title: 'Time Limits & Structure',
-      description: 'Substantive speeches: 4 mins. Reply speeches: 3 mins (Timed Bells).',
+      description: '3 speakers: 5 mins each (Substantive) + 3 mins Rebuttal / Reply Speech.',
       icon: Clock,
-      highlight: 'Timed Bells',
+      highlight: '5m + 3m Bells',
     },
     {
       id: 'judging',
@@ -48,6 +49,7 @@ export const KeyInformationSection: React.FC<KeyInformationSectionProps> = ({
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-50px' }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
+        style={getSectionBgStyle(HOME_SECTION_BACKGROUNDS.keyInfoPanel)}
         className="relative rounded-3xl clay-panel p-6 sm:p-8 lg:p-10 overflow-hidden"
       >
         {/* Ambient Top Glow Line */}

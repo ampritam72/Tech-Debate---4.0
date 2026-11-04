@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Play, Users, Trophy, Award, Crown, ChevronRight } from 'lucide-react';
 import { SpotlightCard, StaggerContainer, StaggerItem } from '../motion';
+import { HOME_SECTION_BACKGROUNDS, getSectionBgStyle } from '../../config/sectionBackgrounds';
 
 export const TournamentFormat: React.FC = () => {
   const steps = [
@@ -69,7 +70,10 @@ export const TournamentFormat: React.FC = () => {
       </div>
 
       {/* Horizontal Connected 6-Stage Timeline */}
-      <div className="relative rounded-3xl clay-panel p-6 sm:p-8 mb-8">
+      <div
+        style={getSectionBgStyle(HOME_SECTION_BACKGROUNDS.timelineBox)}
+        className="relative rounded-3xl clay-panel p-6 sm:p-8 mb-8 overflow-hidden"
+      >
         
         {/* Subtle horizontal connecting line on desktop */}
         <div className="hidden lg:block absolute top-[52px] left-14 right-14 h-[2px] bg-gradient-to-r from-cyan-400/60 via-blue-400/60 to-amber-400/70 z-0 pointer-events-none" />

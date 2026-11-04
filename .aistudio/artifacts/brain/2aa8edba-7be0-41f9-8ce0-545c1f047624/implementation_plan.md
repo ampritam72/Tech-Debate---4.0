@@ -1,52 +1,62 @@
-# Official Rulebook Downloads & Interactive Stage Debate Timer Card
+# Unified Backend WebP Image Compression & Admin Media Management (Committee, Gallery & Hall of Fame)
 
-This update refines the **Official Rulebook & Stage Debate Timer** section on the homepage into a 3-action layout: two dedicated PDF download buttons on the left (**Parliamentary Debate Rules & Adjudication Guidelines** and **Code of Conduct**) and a prominent, full-card interactive **Stage Debate Timer** launcher on the right featuring a custom timer-and-bell stage illustration.
+This revised plan implements a unified **backend image compression engine** that automatically optimizes both **developer-placed images in code** and **Admin Dashboard uploads**, while keeping the 5 Home Page section backgrounds purely developer-controlled in code and providing Admin Dashboard upload managers for **Committee Members**, **Gallery**, and **Hall of Fame**.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> Both clarifications from Phase 1 have been confirmed and incorporated into this plan:
+> This plan has been updated based on your feedback:
 
-- **Confirmed Decision 1 (Separate Rulebook & Conduct PDFs)**: Each download button maps to its own dedicated PDF in the public assets folder (`parliamentary-rules.pdf` / `rulebook.pdf` and `code-of-conduct.pdf`), backed by automatic PDF generation fallbacks if custom files have not yet been replaced.
-- **Confirmed Decision 2 (Custom Timer & Bell Stage Artwork)**: A custom high-contrast illustration depicting a digital countdown stage clock and golden adjudication bell will be generated and embedded inside the right-side card, which acts as the primary clickable launcher for the full-screen Stage Debate Timer page.
+- **Confirmed Decision 1 — 5 Home Page `div` Backgrounds Managed in Code Only**: The 5 selected Home Page containers are wired directly in code (matching the Registration Closed section pattern) without exposing them in the Admin Dashboard. As a developer, you can drop images into the public images folder and the backend will automatically compress and serve them.
+- **Confirmed Decision 2 — Admin Dashboard Uploads for Committee Members, Gallery & Hall of Fame**: The Admin Dashboard provides dedicated photo upload controls for **Committee Members**, **Gallery**, and **Hall of Fame**, allowing administrators to upload or replace photos for these three sections.
+- **Confirmed Decision 3 — 100% Backend-Driven WebP Compression (Developer + Admin Images)**:
+  1. **Admin Uploads**: Every image uploaded from the Admin Dashboard (Committee Members, Gallery, Hall of Fame) is processed on the backend, converted and compressed into lightweight **WebP** format, and saved/returned as an optimized asset.
+  2. **Developer Code Images**: Any heavy PNG/JPG/JPEG image placed by the developer in the public assets folder is automatically compressed by the backend into **WebP** (80–90% smaller) and transparently served—even when referenced by its original filename in code.
 
 ---
 
 ## 1. Overview & Core Concept
 
 - **What It Does**:
-  1. Replaces the previous button pair on the left side of the section with two distinct document download buttons:
-     - **Button 1**: `Parliamentary Debate Rules & Adjudication Guidelines` (downloads the parliamentary debate & adjudication guidelines PDF).
-     - **Button 2**: `Code of Conduct` (downloads the tournament rules & code of conduct PDF).
-  2. Transforms the selected right-side showcase container into a full-surface interactive button (`role="button"`) containing a custom visual banner of a debate stage countdown timer and adjudication bell. Clicking anywhere on this right-side card opens the full-screen Stage Debate Timer view.
-- **Target Audience / Persona**: Tournament debaters, team leaders, and adjudicators downloading official documentation or launching the stage timer on a podium laptop.
-- **Key Value**: Separates the two core tournament documents clearly while making the Stage Debate Timer visually unmistakable and effortless to launch from a single large interactive card.
+  1. **Backend Auto-Compressor for Developer Images**: Automatically scans and intercepts static images in the public assets folders, compressing multi-megabyte PNG/JPEG files into lightweight WebP files (typically 50 KB – 130 KB) and serving them with fast HTTP caching.
+  2. **Backend Auto-Compressor for Admin Uploads**: Processes all Admin Dashboard photo uploads (Committee Members, Gallery, and Hall of Fame) on the server, resizing and encoding them to high-efficiency WebP before storing and syncing them.
+  3. **Developer-Ready Background Wiring on the 5 Selected Home Page `div`s**: Configures the 5 selected Home Page containers in code with the same dark cyber-navy gradient overlay and `backgroundSize: 'cover'` pattern used in the Registration Closed card, ready for developer-supplied images.
+  4. **Admin Dashboard Photo Management for Committee, Gallery & Hall of Fame**: Adds a **Committee Members** photo upload manager alongside the existing **Gallery** and **Hall of Fame 4.0** uploaders in the Admin Dashboard.
+- **Target Audience / Persona**: The developer (managing section background images in code) and tournament administrators (managing Committee Member portraits, Gallery photos, and Hall of Fame winner photos from the Admin Dashboard).
+- **Key Value**: Guarantees ultra-fast page loads across the entire website without manual image compression, whether an image is added in code by the developer or uploaded through the Admin Dashboard.
 
 ---
 
 ## 2. User Experience & Visual Design
 
 - **Key User Flows**:
-  1. **Downloading Parliamentary Rules**: Clicking **Parliamentary Debate Rules & Adjudication Guidelines** triggers an immediate browser download of the parliamentary debate & adjudication rules PDF.
-  2. **Downloading Code of Conduct**: Clicking **Code of Conduct** triggers an immediate browser download of the tournament code of conduct & disciplinary rules PDF.
-  3. **Launching the Stage Debate Timer**: Hovering over the right-side card elevates the surface, illuminates its cyan/amber border glow, and highlights the call-to-action prompt. Clicking anywhere on the card opens the full-screen Stage Debate Timer interface.
+  1. **Developer Code Image Workflow (5 Home Page `div`s & Static Assets)**:
+     - The 5 selected Home Page containers are pre-wired in code with clean dark-navy overlay gradients and designated background image paths:
+       - **Div 1 (Tournament Progression Timeline Box — `1920×420`)**
+       - **Div 2 (Key Information Section — `1920×740`)**
+       - **Div 3 (Important Dates & Milestones Section — `1920×1080`)**
+       - **Div 4 (Championship Protocol Card — `800×580`)**
+       - **Div 5 (Official Rulebook & Stage Debate Timer Section — `1920×640`)**
+     - Whenever the developer places or replaces an image in the public images folder (even a large 4 MB PNG/JPG), the backend automatically generates an optimized WebP version and serves the compressed payload transparently.
+  2. **Admin Dashboard Upload Workflow (Committee Members, Gallery, Hall of Fame)**:
+     - **Committee Members Tab**: Displays the Organizing Committee & Leadership roster. The Admin can upload or change any member's portrait photo (or add/edit member details), which is sent to the backend compressor, converted to lightweight WebP, and synced across the Home Page Committee Preview and the full Committee Page.
+     - **Gallery Tab**: Admin uploads tournament event photos; the backend compresses each image into WebP and stores it in the gallery.
+     - **Hall of Fame 4.0 Tab**: Admin uploads Champion, Runners Up, Emerging Team, and Best Debater photos; the backend compresses each photo into WebP and updates the Hall of Fame display.
 - **Visual Identity & Theme**:
-  - *Aesthetic Direction*: High-craft dark tournament arena UI with deep navy/obsidian claymorphism surfaces, crisp cyan (`#38bdf8`) and amber-gold (`#fbbf24`) accents.
-  - *Typography & Hierarchy*: Bold geometric display headings paired with single-line action buttons and tabular numerals (`tabular-nums`) for time milestones.
-  - *Component Styling & Layout*: 12-column responsive split (`lg:col-span-7` for the heading, description, and two PDF download buttons; `lg:col-span-5` for the interactive Stage Debate Timer card button).
-- **Interactive Feedback & Motion**: Smooth hover lift (`-translate-y-1`), subtle image zoom on hover, accessible keyboard focus rings (`focus-visible:ring-2`), and active press feedback (`active:scale-[0.99]`).
+  - *Aesthetic Direction*: Cyber-navy tournament arena glassmorphism consistent with the Registration Closed section.
+  - *Color Palette & Mood*: Deep navy overlay (`linear-gradient(90deg, rgba(10,25,47,0.92) 0%, rgba(13,38,76,0.86) 50%, rgba(10,25,47,0.92) 100%)`) over background photography so white and cyan foreground text maintains WCAG AA contrast.
+  - *Typography & Hierarchy*: Display titles in `Plus Jakarta Sans` / `Outfit`, body copy in `DM Sans`, and compression/file-size badges in `JetBrains Mono` (`tabular-nums`).
 
 ---
 
 ## 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Dedicated Download Endpoints with Automatic Fallback PDFs**
-  - *Chosen Approach*: Support separate download routes (`/api/rulebook/download?type=parliamentary` and `/api/rulebook/download?type=conduct`) that serve custom uploaded PDFs from the public folder when present, or generate structured, printable fallback PDFs automatically.
-  - *Why*: Ensures both buttons work reliably out of the box while allowing the organizer to drop updated PDF files into the public folder at any time without code changes.
-  - *Alternatives Considered*: Linking both buttons to a single static file, which was passed over per user preference for separate documents.
-- **Decision 2: Full-Card Interactive Timer Launcher**
-  - *Chosen Approach*: Convert the right-side showcase card into an accessible button element wrapping the custom timer-and-bell illustration, title, and bell milestone summary.
-  - *Why*: Eliminates redundant buttons on the left while giving the Stage Debate Timer a high-impact visual entry point.
+- **Decision 1 — Transparent Backend WebP Middleware + Folder Scanner**
+  - *Chosen Approach*: Use a server-side image processing pipeline (`sharp`) that (a) scans and generates `.webp` companions for all developer images in the public folders on startup/change, and (b) intercepts requests for `/images/*` to serve the compressed WebP buffer automatically with `Cache-Control` headers.
+  - *Why*: You never have to manually convert PNG/JPG files or worry about file extensions in your React code—even if you write `url(/images/my-bg.png)` with a 5 MB PNG file, the server automatically serves the ~80 KB compressed WebP version.
+- **Decision 2 — Centralized Backend Upload Compression Endpoint for Admin Panel**
+  - *Chosen Approach*: Route Admin photo uploads for **Committee Members**, **Gallery**, and **Hall of Fame** through a unified backend compression endpoint (`POST /api/images/compress`), which resizes and compresses the image to WebP on the server and returns the optimized asset URL / data.
+  - *Why*: Ensures consistent, high-speed server-side compression across all three admin-managed modules and keeps Firestore / database documents small and fast.
 
 ---
 
@@ -55,30 +65,36 @@ This update refines the **Official Rulebook & Stage Debate Timer** section on th
 - **Architecture & Component Diagram**:
 
 ```
+┌───────────────────────────────────┐   ┌───────────────────────────────────┐
+│   DEVELOPER CODE ASSETS           │   │   ADMIN DASHBOARD UPLOADS         │
+│  • 5 Selected Home Div BGs        │   │  • Committee Members Photos       │
+│  • Hero / Banner / Static Images  │   │  • Gallery Event Photos           │
+└─────────────────┬─────────────────┘   └─────────────────┬─────────────────┘
+                  │                                       │
+                  ▼                                       ▼
 ┌───────────────────────────────────────────────────────────────────────────┐
-│                Official Rulebook & Stage Debate Timer Section             │
-├─────────────────────────────────────┬─────────────────────────────────────┤
-│        Left Column (7 Cols)         │        Right Column (5 Cols)        │
-│                                     │                                     │
-│  ┌───────────────────────────────┐  │  ┌───────────────────────────────┐  │
-│  │ Button 1: Parliamentary       │  │  │ Interactive Timer Card Button │  │
-│  │ Debate Rules & Adjudication   │──┼─►│  • Custom Timer + Bell Image  │  │
-│  │ Guidelines (PDF Download)     │  │  │  • Title & Milestone Summary  │  │
-│  └───────────────────────────────┘  │  │  • Click -> Opens Full-Screen │  │
-│  ┌───────────────────────────────┐  │  │    Stage Debate Timer View    │  │
-│  │ Button 2: Code of Conduct     │  │  └───────────────────────────────┘  │
-│  │ (Tournament Rules Download)   │  │                                     │
-│  └───────────────────────────────┘  │                                     │
-└──────────────────┬──────────────────┴──────────────────┬──────────────────┘
-                   │                                     │
-                   ▼                                     ▼
-┌─────────────────────────────────────┐ ┌───────────────────────────────────┐
-│   Backend PDF Download Resolver     │ │   Full-Screen Debate Timer View   │
-│  • Serves parliamentary-rules.pdf   │ │  • Giant Stage Countdown Display  │
-│  • Serves code-of-conduct.pdf       │ │  • Automated 1m/2m/3m/4m Bells    │
-└─────────────────────────────────────┘ └───────────────────────────────────┘
+│                UNIFIED BACKEND WEBP COMPRESSION ENGINE                    │
+│  1. Static Folder Optimizer & Middleware:                                 │
+│     • Scans public image directories for .png / .jpg / .jpeg              │
+│     • Compresses to lightweight .webp (80-90% size reduction)             │
+│     • Transparently serves compressed WebP with Cache-Control headers     │
+│  2. Admin Upload Compressor API (POST /api/images/compress):              │
+│     • Receives raw image from Admin (Committee / Gallery / Hall of Fame)  │
+│     • Resizes & encodes to WebP on backend -> stores & returns WebP URL   │
+└────────────────────────────────────┬──────────────────────────────────────┘
+                                     │
+                                     ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│                       LIVE FRONTEND APPLICATION                           │
+│  • 5 Home Page Divs render developer backgrounds with dark navy overlay   │
+│  • Committee, Gallery & Hall of Fame render backend-compressed WebP       │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Interactive Component & State Mapping**:
-  - **Left Action Row**: Contains the two download anchor buttons (`Parliamentary Debate Rules & Adjudication Guidelines` and `Code of Conduct`), styled for clear visual hierarchy and immediate file download.
-  - **Right Interactive Card**: Bound directly to `onOpenTimerPage`, supporting both mouse click and keyboard activation (`Enter` / `Space`), displaying the generated stage timer & bell artwork with a fallback visual container.
+- **Data Model & State**:
+  - **5 Home Page Section Background Slots (Developer Code Constants)**:
+    - Defined in a clean, single developer config object so you can drop files named `bg-timeline.png` (or `.jpg`/`.webp`), `bg-key-info.png`, `bg-important-dates.png`, `bg-protocol-card.png`, and `bg-rulebook-timer.png` into the public images folder and they automatically appear with backend WebP compression.
+  - **Committee Members State**:
+    - Synced via `TournamentContext` and persisted so Admin photo uploads for any Committee Member immediately update both the Home Page Committee Preview and the full Committee Page.
+  - **Gallery & Hall of Fame State**:
+    - Uses the backend WebP compressor on upload and persists the optimized WebP URL.

@@ -1,32 +1,42 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { SectionHeader } from '../components/common/SectionHeader';
 import { 
-  LEADERSHIP_CARDS, 
-  SORTED_STUDENT_MEMBERS, 
-  CommitteeMemberData 
+  CommitteeMemberData,
+  useCommitteeRoster
 } from '../data/committeeMembers';
 import { UserCheck, Shield } from 'lucide-react';
 
 export interface CommitteeMemberCardProps {
   member: CommitteeMemberData;
+  adminOverrideUrl?: string;
   isTopReserved?: boolean;
 }
 
-export const CommitteeMemberCard: React.FC<CommitteeMemberCardProps> = ({ member, isTopReserved }) => {
+export const CommitteeMemberCard: React.FC<CommitteeMemberCardProps> = ({ member, adminOverrideUrl, isTopReserved }) => {
   const [candidateIndex, setCandidateIndex] = useState(0);
   const [imgError, setImgError] = useState(false);
 
-  // Combine photoCandidates with photoUrl
+  useEffect(() => {
+    setCandidateIndex(0);
+    setImgError(false);
+  }, [adminOverrideUrl]);
+
+  // Combine photoCandidates with photoUrl (prioritizing Admin-uploaded WebP photo)
   const candidates = useMemo(() => {
     const list: string[] = [];
+    if (adminOverrideUrl) {
+      list.push(adminOverrideUrl);
+    }
     if (member.photoCandidates && member.photoCandidates.length > 0) {
-      list.push(...member.photoCandidates);
+      for (const c of member.photoCandidates) {
+        if (!list.includes(c)) list.push(c);
+      }
     }
     if (member.photoUrl && !list.includes(member.photoUrl)) {
       list.push(member.photoUrl);
     }
     return list;
-  }, [member]);
+  }, [member, adminOverrideUrl]);
 
   const avatarFallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=0a1c3c&color=38bdf8&size=512`;
   const photoSrc = (!imgError && candidates[candidateIndex]) ? candidates[candidateIndex] : avatarFallback;
@@ -157,6 +167,8 @@ export const CommitteeMemberCard: React.FC<CommitteeMemberCardProps> = ({ member
 };
 
 export const CommitteePage: React.FC = () => {
+  const { leadership, students, photoOverrides } = useCommitteeRoster();
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <SectionHeader
@@ -177,10 +189,11 @@ export const CommitteePage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {LEADERSHIP_CARDS.map((member) => (
+          {leadership.map((member) => (
             <CommitteeMemberCard
               key={member.id}
               member={member}
+              adminOverrideUrl={photoOverrides[member.id]}
               isTopReserved={true}
             />
           ))}
@@ -197,10 +210,11 @@ export const CommitteePage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {SORTED_STUDENT_MEMBERS.map((member) => (
+          {students.map((member) => (
             <CommitteeMemberCard
               key={member.id}
               member={member}
+              adminOverrideUrl={photoOverrides[member.id]}
               isTopReserved={false}
             />
           ))}

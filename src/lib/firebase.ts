@@ -236,6 +236,12 @@ export function sanitizeInquiryForFirestore(inquiry: ContactInquiry): Record<str
 }
 
 export function sanitizeHallOfFameForFirestore(hof: HallOfFameEdition): Record<string, any> {
+  const isEdition4 = String(hof.edition || '4.0').trim() === '4.0';
+  const champAdmin = Boolean(hof.champion?.adminUploaded);
+  const runnerAdmin = Boolean(hof.runnerUp?.adminUploaded);
+  const emergingAdmin = Boolean(hof.emergingTeam?.adminUploaded);
+  const bestAdmin = Boolean(hof.bestTournamentDebater?.adminUploaded);
+
   const docData: Record<string, any> = {
     edition: String(hof.edition || '4.0').trim().slice(0, 16),
     year: Number(hof.year || 2026),
@@ -247,7 +253,8 @@ export function sanitizeHallOfFameForFirestore(hof: HallOfFameEdition): Record<s
       members: Array.isArray(hof.champion?.members)
         ? hof.champion.members.slice(0, 5).map((m) => String(m).trim().slice(0, 100))
         : ['TBD'],
-      photoUrl: String(hof.champion?.photoUrl || '').trim(),
+      photoUrl: !isEdition4 || champAdmin ? String(hof.champion?.photoUrl || '').trim() : '',
+      adminUploaded: champAdmin && Boolean(hof.champion?.photoUrl),
     },
     runnerUp: {
       teamName: String(hof.runnerUp?.teamName || 'TBD').trim().slice(0, 120),
@@ -255,7 +262,8 @@ export function sanitizeHallOfFameForFirestore(hof: HallOfFameEdition): Record<s
       members: Array.isArray(hof.runnerUp?.members)
         ? hof.runnerUp.members.slice(0, 5).map((m) => String(m).trim().slice(0, 100))
         : ['TBD'],
-      photoUrl: String(hof.runnerUp?.photoUrl || '').trim(),
+      photoUrl: !isEdition4 || runnerAdmin ? String(hof.runnerUp?.photoUrl || '').trim() : '',
+      adminUploaded: runnerAdmin && Boolean(hof.runnerUp?.photoUrl),
     },
     emergingTeam: {
       teamName: String(hof.emergingTeam?.teamName || 'Emerging Team TBD').trim().slice(0, 120),
@@ -263,14 +271,16 @@ export function sanitizeHallOfFameForFirestore(hof: HallOfFameEdition): Record<s
       members: Array.isArray(hof.emergingTeam?.members)
         ? hof.emergingTeam.members.slice(0, 5).map((m) => String(m).trim().slice(0, 100))
         : ['Rising Debaters Award', 'Breakout Performance', 'VU Central Auditorium'],
-      photoUrl: String(hof.emergingTeam?.photoUrl || '').trim(),
+      photoUrl: !isEdition4 || emergingAdmin ? String(hof.emergingTeam?.photoUrl || '').trim() : '',
+      adminUploaded: emergingAdmin && Boolean(hof.emergingTeam?.photoUrl),
     },
     bestTournamentDebater: {
       name: String(hof.bestTournamentDebater?.name || 'TBD').trim().slice(0, 120),
       batch: String(hof.bestTournamentDebater?.batch || 'CSE Department').trim().slice(0, 64),
       studentId: String(hof.bestTournamentDebater?.studentId || '').trim().slice(0, 64),
       achievement: String(hof.bestTournamentDebater?.achievement || '').trim().slice(0, 300),
-      photoUrl: String(hof.bestTournamentDebater?.photoUrl || '').trim(),
+      photoUrl: !isEdition4 || bestAdmin ? String(hof.bestTournamentDebater?.photoUrl || '').trim() : '',
+      adminUploaded: bestAdmin && Boolean(hof.bestTournamentDebater?.photoUrl),
     },
     finalMatchBestDebater: {
       name: String(hof.finalMatchBestDebater?.name || 'TBD').trim().slice(0, 120),

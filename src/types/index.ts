@@ -79,24 +79,28 @@ export interface HallOfFameEdition {
     members: string[];
     batch: string;
     photoUrl?: string;
+    adminUploaded?: boolean;
   };
   runnerUp: {
     teamName: string;
     members: string[];
     batch: string;
     photoUrl?: string;
+    adminUploaded?: boolean;
   };
   emergingTeam?: {
     teamName: string;
     members: string[];
     batch: string;
     photoUrl?: string;
+    adminUploaded?: boolean;
   };
   bestTournamentDebater: {
     name: string;
     batch: string;
     studentId: string;
     photoUrl?: string;
+    adminUploaded?: boolean;
     achievement: string;
   };
   finalMatchBestDebater: {
@@ -104,6 +108,7 @@ export interface HallOfFameEdition {
     batch: string;
     studentId: string;
     photoUrl?: string;
+    adminUploaded?: boolean;
   };
   committee: Array<{
     name: string;

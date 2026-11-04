@@ -31,6 +31,8 @@ import {
   Lock
 } from 'lucide-react';
 import { useTournament } from '../context/TournamentContext';
+import { HOME_SECTION_BACKGROUNDS, getSectionBgStyle } from '../config/sectionBackgrounds';
+import { usePortalSettings } from '../config/portalSettings';
 
 interface AboutPageProps {
   targetRuleId?: string;
@@ -46,9 +48,10 @@ export const AboutPage: React.FC<AboutPageProps> = ({
   onOpenTimerPage = () => window.dispatchEvent(new CustomEvent('navigate-tab', { detail: 'timer' })),
 }) => {
   const { teams } = useTournament();
-  const [selectedRuleTab, setSelectedRuleTab] = useState<string>(targetRuleId || 'all');
+  const { isRegistrationOpen } = usePortalSettings();
+  const [selectedRuleTab, setSelectedRuleTab] = useState<string>(targetRuleId || 'format');
   const [highlightedCard, setHighlightedCard] = useState<string | null>(targetRuleId || null);
-  const [expandedSection, setExpandedSection] = useState<string | null>(targetRuleId || null);
+  const [expandedSection, setExpandedSection] = useState<string | null>(targetRuleId || 'format');
 
   // Live verified teams & debaters count from database
   const verifiedTeams = teams.filter(
@@ -157,7 +160,10 @@ export const AboutPage: React.FC<AboutPageProps> = ({
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-16 sm:space-y-24">
       
       {/* 1. HERO SECTION - Clean, High Impact Header */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#0e1d42] via-[#0a1633] to-[#071026] border border-cyan-500/20 p-6 sm:p-10 lg:p-12 shadow-2xl">
+      <section
+        style={getSectionBgStyle(HOME_SECTION_BACKGROUNDS.debateSpeaker, 'medium')}
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#0e1d42] via-[#0a1633] to-[#071026] border border-cyan-500/20 p-6 sm:p-10 lg:p-12 shadow-2xl"
+      >
         {/* Glow ambient accent */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
@@ -188,13 +194,23 @@ export const AboutPage: React.FC<AboutPageProps> = ({
             </p>
 
             <div className="flex flex-wrap items-center gap-4 pt-2">
-              <button
-                onClick={onRegisterClick}
-                className="px-6 py-3 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 hover:text-white font-bold text-xs sm:text-sm shadow-lg shadow-rose-500/10 transition-all cursor-pointer flex items-center gap-2"
-              >
-                <Lock className="w-4 h-4 text-rose-400" />
-                <span>Registration Closed</span>
-              </button>
+              {isRegistrationOpen ? (
+                <button
+                  onClick={onRegisterClick}
+                  className="clay-btn-primary px-6 py-3 rounded-xl font-bold text-xs sm:text-sm text-white shadow-lg shadow-cyan-500/20 transition-all cursor-pointer flex items-center gap-2"
+                >
+                  <span>Register Your Squad</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={onRegisterClick}
+                  className="px-6 py-3 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 hover:text-white font-bold text-xs sm:text-sm shadow-lg shadow-rose-500/10 transition-all cursor-pointer flex items-center gap-2"
+                >
+                  <Lock className="w-4 h-4 text-rose-400" />
+                  <span>Registration Closed</span>
+                </button>
+              )}
 
               <button
                 onClick={() => {
@@ -209,58 +225,19 @@ export const AboutPage: React.FC<AboutPageProps> = ({
             </div>
           </motion.div>
 
-          {/* Right Visual Highlight Showcase */}
+          {/* Right Visual Highlight Showcase - Full Picture without Text Overlay */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
             className="lg:col-span-5"
           >
-            <div className="rounded-2xl border border-cyan-500/30 bg-[#091530]/90 p-6 shadow-xl backdrop-blur-md space-y-5">
-              <div className="flex items-center justify-between pb-3 border-b border-cyan-500/20">
-                <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wide">
-                  Tournament Overview
-                </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 text-[11px] font-semibold border border-cyan-400/30">
-                  3v3 Asian Parliamentary
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="p-3.5 rounded-xl bg-[#0e214d] border border-cyan-500/20">
-                  <div className="text-slate-400 font-mono text-[11px] mb-1">Format</div>
-                  <div className="font-bold text-white text-sm">3 vs 3 AP Debate</div>
-                  <div className="text-cyan-300/80 text-[11px] mt-0.5">Gov vs Opp</div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-[#0e214d] border border-cyan-500/20">
-                  <div className="text-slate-400 font-mono text-[11px] mb-1">Speeches</div>
-                  <div className="font-bold text-white text-sm">4 Mins + 3m Reply</div>
-                  <div className="text-cyan-300/80 text-[11px] mt-0.5">Timed Bells</div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-[#0e214d] border border-cyan-500/20">
-                  <div className="text-slate-400 font-mono text-[11px] mb-1">Eligibility</div>
-                  <div className="font-bold text-white text-sm">CSE Undergraduates</div>
-                  <div className="text-cyan-300/80 text-[11px] mt-0.5">Batch Teams</div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-[#0e214d] border border-cyan-500/20">
-                  <div className="text-slate-400 font-mono text-[11px] mb-1">Evaluation</div>
-                  <div className="font-bold text-white text-sm">Matter, Manner, Method</div>
-                  <div className="text-cyan-300/80 text-[11px] mt-0.5">40% / 40% / 20%</div>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <div className="flex items-center justify-between text-xs text-slate-300 font-medium p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/30">
-                  <div className="flex items-center gap-2">
-                    <Trophy className="w-4 h-4 text-amber-400" />
-                    <span>Grand Trophy + Crests + Certificates</span>
-                  </div>
-                  <span className="text-cyan-300 font-bold font-mono">Edition 4</span>
-                </div>
-              </div>
+            <div className="rounded-2xl border border-cyan-400/40 overflow-hidden shadow-[0_12px_36px_rgba(6,182,212,0.2)] aspect-[16/10] w-full bg-transparent">
+              <img
+                src={HOME_SECTION_BACKGROUNDS.debateSpeaker}
+                alt="Tech Debate 4.0 Arena Speaker"
+                className="w-full h-full object-cover object-center block opacity-100"
+              />
             </div>
           </motion.div>
 
@@ -302,7 +279,10 @@ export const AboutPage: React.FC<AboutPageProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
           
           {/* Our Vision Card */}
-          <div className="rounded-3xl clay-card p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden group select-none">
+          <div
+            style={getSectionBgStyle(HOME_SECTION_BACKGROUNDS.debateSpeaker, 'standard')}
+            className="rounded-3xl clay-card p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden group select-none"
+          >
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full clay-badge text-cyan-400 text-xs font-mono font-bold uppercase tracking-wider">
                 <Eye className="w-3.5 h-3.5" />
@@ -329,7 +309,10 @@ export const AboutPage: React.FC<AboutPageProps> = ({
           </div>
 
           {/* Our Mission Card */}
-          <div className="rounded-3xl clay-card p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden group select-none">
+          <div
+            style={getSectionBgStyle(HOME_SECTION_BACKGROUNDS.digitalGlobe, 'standard')}
+            className="rounded-3xl clay-card p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden group select-none"
+          >
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full clay-badge text-cyan-400 text-xs font-mono font-bold uppercase tracking-wider">
                 <Target className="w-3.5 h-3.5" />
@@ -362,6 +345,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({
       {/* 3. OFFICIAL TOURNAMENT HANDBOOK - Clean Interactive Explorer */}
       <section 
         id="tournament-rules-section" 
+        style={getSectionBgStyle(HOME_SECTION_BACKGROUNDS.rulebookTimerPanel, 'standard')}
         className="rounded-3xl clay-panel p-6 sm:p-10 relative overflow-hidden space-y-8"
       >
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-cyan-500/20">
@@ -394,7 +378,10 @@ export const AboutPage: React.FC<AboutPageProps> = ({
             return (
               <button
                 key={tab.id}
-                onClick={() => setSelectedRuleTab(tab.id)}
+                onClick={() => {
+                  setSelectedRuleTab(tab.id);
+                  setExpandedSection(tab.id);
+                }}
                 className={`
                   px-4 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 select-none
                   ${isSelected 
@@ -410,15 +397,16 @@ export const AboutPage: React.FC<AboutPageProps> = ({
           })}
         </div>
 
-        {/* Rule Cards Grid */}
+        {/* Rule Cards Grid - Shows only the currently selected tab */}
         <div className="space-y-4">
 
           {/* CARD 1: Parliamentary Debate Format */}
-          {(selectedRuleTab === 'all' || selectedRuleTab === 'format') && (
+          {selectedRuleTab === 'format' && (
             <motion.div
               id="rule-format"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
+              style={getSectionBgStyle(HOME_SECTION_BACKGROUNDS.aboutRuleCardBg, 'vivid')}
               className={`
                 rounded-2xl transition-all p-5 sm:p-6 select-none
                 ${highlightedCard === 'format'
@@ -427,56 +415,66 @@ export const AboutPage: React.FC<AboutPageProps> = ({
                 }
               `}
             >
-              <div 
-                className="flex items-center justify-between cursor-pointer"
-                onClick={() => setExpandedSection(expandedSection === 'format' ? null : 'format')}
-              >
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
                     <Scale className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="font-display text-base sm:text-lg font-bold text-white">
                       Asian Parliamentary Format (3 vs 3)
                     </h3>
-                    <p className="text-xs text-slate-400 font-mono">
+                    <p className="text-xs text-slate-300 font-mono">
                       Government (Proposition) vs Opposition (Negative)
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="hidden sm:inline-block px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-300 text-[11px] font-mono font-semibold border border-cyan-500/20">
+                  <span className="hidden sm:inline-block px-2.5 py-1 rounded-full bg-cyan-500/15 text-cyan-200 text-[11px] font-mono font-semibold border border-cyan-400/30">
                     Standard Rules
                   </span>
-                  <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${expandedSection === 'format' ? 'rotate-180 text-cyan-400' : ''}`} />
                 </div>
               </div>
 
-              {/* Expandable Content */}
-              <AnimatePresence>
-                {(expandedSection === 'format' || selectedRuleTab === 'format' || selectedRuleTab === 'all') && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mt-5 pt-4 border-t border-slate-800 space-y-4"
-                  >
-                    <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
-                      The championship follows standard <strong>Asian Parliamentary (AP) debate rules</strong>, pitting two 3-member teams against each other on complex policy and philosophical motions.
+              <div className="mt-5 pt-4 border-t border-cyan-500/25 space-y-4">
+                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">
+                  The championship follows standard <strong>Asian Parliamentary (AP) debate rules</strong>, pitting two 3-member teams against each other on complex technology, policy, and philosophical motions.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                  <div className="p-3.5 rounded-xl bg-slate-950/65 backdrop-blur-sm border border-cyan-500/25 space-y-1">
+                    <div className="font-bold text-cyan-300">Government Bench (3 Speakers)</div>
+                    <p className="text-slate-200 leading-relaxed">
+                      Prime Minister (PM), Deputy Prime Minister (DPM), and Government Whip (GW) define and defend the motion.
                     </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-950/65 backdrop-blur-sm border border-cyan-500/25 space-y-1">
+                    <div className="font-bold text-cyan-300">Opposition Bench (3 Speakers)</div>
+                    <p className="text-slate-200 leading-relaxed">
+                      Leader of Opposition (LO), Deputy Leader of Opposition (DLO), and Opposition Whip (OW) negate and clash with the motion.
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-950/65 backdrop-blur-sm border border-cyan-500/25 space-y-1">
+                    <div className="font-bold text-cyan-300">Speech Flow (5m + 3m)</div>
+                    <p className="text-slate-200 leading-relaxed">
+                      All 3 speakers deliver 5-minute substantive speeches first, followed by a 3-minute Rebuttal / Reply speech from each side.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           )}
 
           {/* CARD 2: Squad & Team Rules */}
-          {(selectedRuleTab === 'all' || selectedRuleTab === 'team') && (
+          {selectedRuleTab === 'team' && (
             <motion.div
               id="rule-team"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
+              style={getSectionBgStyle(HOME_SECTION_BACKGROUNDS.aboutRuleCardBg, 'vivid')}
               className={`
                 rounded-2xl transition-all p-5 sm:p-6 select-none
                 ${highlightedCard === 'team'
@@ -485,74 +483,62 @@ export const AboutPage: React.FC<AboutPageProps> = ({
                 }
               `}
             >
-              <div 
-                className="flex items-center justify-between cursor-pointer"
-                onClick={() => setExpandedSection(expandedSection === 'team' ? null : 'team')}
-              >
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
                     <Users className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="font-display text-base sm:text-lg font-bold text-white">
                       Squad Roster & Academic Eligibility
                     </h3>
-                    <p className="text-xs text-slate-400 font-mono">
+                    <p className="text-xs text-slate-300 font-mono">
                       Department of Computer Science & Engineering (CSE)
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="hidden sm:inline-block px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-300 text-[11px] font-mono font-semibold border border-cyan-500/20">
+                  <span className="hidden sm:inline-block px-2.5 py-1 rounded-full bg-cyan-500/15 text-cyan-200 text-[11px] font-mono font-semibold border border-cyan-400/30">
                     3 Members
                   </span>
-                  <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${expandedSection === 'team' ? 'rotate-180 text-cyan-400' : ''}`} />
                 </div>
               </div>
 
-              <AnimatePresence>
-                {(expandedSection === 'team' || selectedRuleTab === 'team' || selectedRuleTab === 'all') && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mt-5 pt-4 border-t border-slate-800 space-y-4"
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                      <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-                        <div className="font-bold text-cyan-300">Squad Roster</div>
-                        <p className="text-slate-300 leading-relaxed">
-                          Only 3 members (3 active speakers per squad).
-                        </p>
-                      </div>
+              <div className="mt-5 pt-4 border-t border-cyan-500/25 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                  <div className="p-3.5 rounded-xl bg-slate-950/65 backdrop-blur-sm border border-cyan-500/25 space-y-1">
+                    <div className="font-bold text-cyan-300">Squad Roster</div>
+                    <p className="text-slate-200 leading-relaxed">
+                      Only 3 members (3 active speakers per squad).
+                    </p>
+                  </div>
 
-                      <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-                        <div className="font-bold text-cyan-300">CSE Department Eligibility</div>
-                        <p className="text-slate-300 leading-relaxed">
-                          Open to registered undergraduate students of CSE, Varendra University, Rajshahi.
-                        </p>
-                      </div>
+                  <div className="p-3.5 rounded-xl bg-slate-950/65 backdrop-blur-sm border border-cyan-500/25 space-y-1">
+                    <div className="font-bold text-cyan-300">CSE Department Eligibility</div>
+                    <p className="text-slate-200 leading-relaxed">
+                      Open to registered undergraduate students of CSE, Varendra University, Rajshahi.
+                    </p>
+                  </div>
 
-                      <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-                        <div className="font-bold text-cyan-300">Reply Speech Rule</div>
-                        <p className="text-slate-300 leading-relaxed">
-                          Delivered by 1st or 2nd speaker only. 3rd speaker (Whip) is ineligible.
-                        </p>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                  <div className="p-3.5 rounded-xl bg-slate-950/65 backdrop-blur-sm border border-cyan-500/25 space-y-1">
+                    <div className="font-bold text-cyan-300">Reply Speech Rule</div>
+                    <p className="text-slate-200 leading-relaxed">
+                      Delivered by 1st or 2nd speaker only. 3rd speaker (Whip) is ineligible.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           )}
 
           {/* CARD 3: Time Limits & Bells */}
-          {(selectedRuleTab === 'all' || selectedRuleTab === 'timings') && (
+          {selectedRuleTab === 'timings' && (
             <motion.div
               id="rule-timings"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
+              style={getSectionBgStyle(HOME_SECTION_BACKGROUNDS.aboutRuleCardBg, 'vivid')}
               className={`
                 rounded-2xl transition-all p-5 sm:p-6 select-none
                 ${highlightedCard === 'timings'
@@ -561,120 +547,107 @@ export const AboutPage: React.FC<AboutPageProps> = ({
                 }
               `}
             >
-              <div 
-                className="flex items-center justify-between cursor-pointer"
-                onClick={() => setExpandedSection(expandedSection === 'timings' ? null : 'timings')}
-              >
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
                     <Clock className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="font-display text-base sm:text-lg font-bold text-white">
                       Speech Time Allocations & Timed Bells
                     </h3>
-                    <p className="text-xs text-slate-400 font-mono">
-                      Substantive Speeches: 4 Mins | Reply Speeches: 3 Mins | Timed Bells
+                    <p className="text-xs text-slate-300 font-mono">
+                      3 Speakers: 5 Mins Each (Substantive) | Rebuttal / Reply Speech: 3 Mins
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="hidden sm:inline-block px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-300 text-[11px] font-mono font-semibold border border-cyan-500/20">
-                    Timed Bells
+                  <span className="hidden sm:inline-block px-2.5 py-1 rounded-full bg-cyan-500/15 text-cyan-200 text-[11px] font-mono font-semibold border border-cyan-400/30">
+                    5m + 3m Timed Bells
                   </span>
-                  <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${expandedSection === 'timings' ? 'rotate-180 text-cyan-400' : ''}`} />
                 </div>
               </div>
 
-              <AnimatePresence>
-                {(expandedSection === 'timings' || selectedRuleTab === 'timings' || selectedRuleTab === 'all') && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mt-5 pt-4 border-t border-slate-800 space-y-5"
-                  >
-                    {/* 4 Mins Substantive Speeches */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
-                          <Mic className="w-3.5 h-3.5 text-cyan-400" />
-                          <span>1. Substantive Speeches (4 Minutes)</span>
-                        </span>
-                        <span className="text-[11px] font-mono text-slate-400">Gov & Opp (All 6 Speakers)</span>
-                      </div>
+              <div className="mt-5 pt-4 border-t border-cyan-500/25 space-y-5">
+                {/* 5 Mins Substantive Speeches */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <Mic className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>1. Substantive Speeches (5 Minutes Each — 3 Speakers per Team)</span>
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-300">Gov & Opp (All 6 Speakers)</span>
+                  </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                        <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-                          <div className="font-mono text-cyan-400 font-bold">1:00 Min</div>
-                          <div className="text-white font-semibold mt-0.5">Single Bell (1st Bell)</div>
-                          <p className="text-[11px] text-slate-400 mt-0.5">Floor open for POIs</p>
-                        </div>
-
-                        <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-                          <div className="font-mono text-cyan-400 font-bold">3:00 Min</div>
-                          <div className="text-white font-semibold mt-0.5">Single Bell (Warning Bell)</div>
-                          <p className="text-[11px] text-slate-400 mt-0.5">POIs close; 1-min warning</p>
-                        </div>
-
-                        <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-                          <div className="font-mono text-amber-400 font-bold">4:00 Min</div>
-                          <div className="text-white font-semibold mt-0.5">Double Bell (Final Bell)</div>
-                          <p className="text-[11px] text-slate-400 mt-0.5">Time limit; 20s grace period</p>
-                        </div>
-
-                        <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-                          <div className="font-mono text-red-400 font-bold">4:20+ Min</div>
-                          <div className="text-white font-semibold mt-0.5">Continuous Bell</div>
-                          <p className="text-[11px] text-slate-400 mt-0.5">Overtime penalty applies</p>
-                        </div>
-                      </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="p-3 rounded-xl bg-slate-950/65 backdrop-blur-sm border border-cyan-500/25">
+                      <div className="font-mono text-cyan-400 font-bold">1:00 Min</div>
+                      <div className="text-white font-semibold mt-0.5">Single Bell (1st Bell)</div>
+                      <p className="text-[11px] text-slate-300 mt-0.5">Floor open for POIs</p>
                     </div>
 
-                    {/* 3 Mins Reply Speeches */}
-                    <div className="space-y-2 pt-2 border-t border-slate-800/80">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                          <span>2. Reply Speeches (3 Minutes)</span>
-                        </span>
-                        <span className="text-[11px] font-mono text-slate-400">1st or 2nd Speaker Only (No POIs)</span>
-                      </div>
-
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                        <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-                          <div className="font-mono text-cyan-400 font-bold">2:00 Min</div>
-                          <div className="text-white font-semibold mt-0.5">Single Bell (Warning Bell)</div>
-                          <p className="text-[11px] text-slate-400 mt-0.5">1-min warning to conclude</p>
-                        </div>
-
-                        <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-                          <div className="font-mono text-amber-400 font-bold">3:00 Min</div>
-                          <div className="text-white font-semibold mt-0.5">Double Bell (Final Bell)</div>
-                          <p className="text-[11px] text-slate-400 mt-0.5">Time limit; conclude remarks</p>
-                        </div>
-
-                        <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 col-span-2 sm:col-span-1">
-                          <div className="font-mono text-red-400 font-bold">3:20+ Min</div>
-                          <div className="text-white font-semibold mt-0.5">Continuous Bell</div>
-                          <p className="text-[11px] text-slate-400 mt-0.5">Overtime penalty applies</p>
-                        </div>
-                      </div>
+                    <div className="p-3 rounded-xl bg-slate-950/65 backdrop-blur-sm border border-cyan-500/25">
+                      <div className="font-mono text-cyan-400 font-bold">4:00 Min</div>
+                      <div className="text-white font-semibold mt-0.5">Single Bell (Warning Bell)</div>
+                      <p className="text-[11px] text-slate-300 mt-0.5">POIs close; 1-min warning</p>
                     </div>
 
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    <div className="p-3 rounded-xl bg-slate-950/65 backdrop-blur-sm border border-cyan-500/25">
+                      <div className="font-mono text-amber-400 font-bold">5:00 Min</div>
+                      <div className="text-white font-semibold mt-0.5">Double Bell (Final Bell)</div>
+                      <p className="text-[11px] text-slate-300 mt-0.5">Time limit; 20s grace period</p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-950/65 backdrop-blur-sm border border-cyan-500/25">
+                      <div className="font-mono text-red-400 font-bold">5:20+ Min</div>
+                      <div className="text-white font-semibold mt-0.5">Continuous Bell</div>
+                      <p className="text-[11px] text-slate-300 mt-0.5">Overtime penalty applies</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3 Mins Rebuttal / Reply Speeches */}
+                <div className="space-y-2 pt-2 border-t border-cyan-500/25">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>2. Rebuttal / Reply Speech (3 Minutes)</span>
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-300">1st or 2nd Speaker Only (No POIs)</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                    <div className="p-3 rounded-xl bg-slate-950/65 backdrop-blur-sm border border-cyan-500/25">
+                      <div className="font-mono text-cyan-400 font-bold">2:00 Min</div>
+                      <div className="text-white font-semibold mt-0.5">Single Bell (Warning Bell)</div>
+                      <p className="text-[11px] text-slate-300 mt-0.5">1-min warning to conclude</p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-950/65 backdrop-blur-sm border border-cyan-500/25">
+                      <div className="font-mono text-amber-400 font-bold">3:00 Min</div>
+                      <div className="text-white font-semibold mt-0.5">Double Bell (Final Bell)</div>
+                      <p className="text-[11px] text-slate-300 mt-0.5">Time limit; conclude remarks</p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-950/65 backdrop-blur-sm border border-cyan-500/25 col-span-2 sm:col-span-1">
+                      <div className="font-mono text-red-400 font-bold">3:20+ Min</div>
+                      <div className="text-white font-semibold mt-0.5">Continuous Bell</div>
+                      <p className="text-[11px] text-slate-300 mt-0.5">Overtime penalty applies</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           )}
 
           {/* CARD 4: Judging Criteria */}
-          {(selectedRuleTab === 'all' || selectedRuleTab === 'judging') && (
+          {selectedRuleTab === 'judging' && (
             <motion.div
               id="rule-judging"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
+              style={getSectionBgStyle(HOME_SECTION_BACKGROUNDS.aboutRuleCardBg, 'vivid')}
               className={`
                 rounded-2xl transition-all p-5 sm:p-6 select-none
                 ${highlightedCard === 'judging'
@@ -683,10 +656,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({
                 }
               `}
             >
-              <div 
-                className="flex items-center justify-between cursor-pointer"
-                onClick={() => setExpandedSection(expandedSection === 'judging' ? null : 'judging')}
-              >
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3.5">
                   <div className="w-10 h-10 rounded-xl clay-badge flex items-center justify-center text-cyan-400">
                     <FileText className="w-5 h-5" />
@@ -695,7 +665,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({
                     <h3 className="font-display text-base sm:text-lg font-bold text-white">
                       Adjudication Rubric & Scoring Breakdown
                     </h3>
-                    <p className="text-xs text-slate-400 font-mono">
+                    <p className="text-xs text-slate-300 font-mono">
                       Matter (40%) • Manner (40%) • Method (20%)
                     </p>
                   </div>
@@ -705,46 +675,36 @@ export const AboutPage: React.FC<AboutPageProps> = ({
                   <span className="hidden sm:inline-block px-2.5 py-1 rounded-full clay-badge text-cyan-300 text-[11px] font-mono font-semibold">
                     Official Rubric
                   </span>
-                  <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${expandedSection === 'judging' ? 'rotate-180 text-cyan-400' : ''}`} />
                 </div>
               </div>
 
-              <AnimatePresence>
-                {(expandedSection === 'judging' || selectedRuleTab === 'judging' || selectedRuleTab === 'all') && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mt-5 pt-4 border-t border-cyan-500/20 space-y-4"
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                      <div className="p-4 rounded-xl clay-tab space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="font-bold text-cyan-300">Matter</span>
-                          <span className="px-2 py-0.5 rounded-lg clay-badge text-cyan-300 font-mono font-bold">40%</span>
-                        </div>
-                        <p className="text-slate-300">Logic, causality, evidence, real-world examples, and rebuttal quality.</p>
-                      </div>
-
-                      <div className="p-4 rounded-xl clay-tab space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="font-bold text-cyan-300">Manner</span>
-                          <span className="px-2 py-0.5 rounded-lg clay-badge text-cyan-300 font-mono font-bold">40%</span>
-                        </div>
-                        <p className="text-slate-300">Vocal modulation, persuasive poise, rhetorical delivery, and POI handling.</p>
-                      </div>
-
-                      <div className="p-4 rounded-xl clay-tab space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="font-bold text-cyan-300">Method</span>
-                          <span className="px-2 py-0.5 rounded-lg clay-badge text-cyan-300 font-mono font-bold">20%</span>
-                        </div>
-                        <p className="text-slate-300">Structure, roadmap, time allocation, and team consistency.</p>
-                      </div>
+              <div className="mt-5 pt-4 border-t border-cyan-500/25 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                  <div className="p-4 rounded-xl bg-slate-950/65 backdrop-blur-sm border border-cyan-500/25 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-cyan-300">Matter</span>
+                      <span className="px-2 py-0.5 rounded-lg clay-badge text-cyan-300 font-mono font-bold">40%</span>
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    <p className="text-slate-200">Logic, causality, evidence, real-world examples, and rebuttal quality.</p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-950/65 backdrop-blur-sm border border-cyan-500/25 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-cyan-300">Manner</span>
+                      <span className="px-2 py-0.5 rounded-lg clay-badge text-cyan-300 font-mono font-bold">40%</span>
+                    </div>
+                    <p className="text-slate-200">Vocal modulation, persuasive poise, rhetorical delivery, and POI handling.</p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-950/65 backdrop-blur-sm border border-cyan-500/25 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-cyan-300">Method</span>
+                      <span className="px-2 py-0.5 rounded-lg clay-badge text-cyan-300 font-mono font-bold">20%</span>
+                    </div>
+                    <p className="text-slate-200">Structure, roadmap, time allocation, and team consistency.</p>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           )}
 
@@ -752,7 +712,10 @@ export const AboutPage: React.FC<AboutPageProps> = ({
       </section>
 
       {/* 4. OUR STORY & MILESTONES - Clean Impact Narrative */}
-      <section className="rounded-3xl clay-panel p-6 sm:p-10 relative overflow-hidden">
+      <section
+        style={getSectionBgStyle(HOME_SECTION_BACKGROUNDS.digitalGlobe, 'medium')}
+        className="rounded-3xl clay-panel p-6 sm:p-10 relative overflow-hidden"
+      >
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           
           <div className="lg:col-span-7 space-y-4">
@@ -786,16 +749,12 @@ export const AboutPage: React.FC<AboutPageProps> = ({
           </div>
 
           <div className="lg:col-span-5 flex justify-center">
-            <div className="p-6 rounded-2xl clay-card text-center space-y-3 max-w-sm w-full select-none">
-              <div className="w-12 h-12 rounded-full clay-badge text-cyan-300 flex items-center justify-center mx-auto">
-                <Mic className="w-6 h-6" />
-              </div>
-              <blockquote className="text-sm font-serif italic text-cyan-200">
-                "Better Arguments. Brighter Future."
-              </blockquote>
-              <p className="text-xs text-slate-400">
-                Empowering the next generation of computer scientists and articulators.
-              </p>
+            <div className="rounded-2xl border border-cyan-400/40 overflow-hidden shadow-[0_12px_36px_rgba(6,182,212,0.2)] aspect-[16/10] w-full bg-transparent">
+              <img
+                src={HOME_SECTION_BACKGROUNDS.aboutStoryImage}
+                alt="Tech Debate 4.0 Grand Stage"
+                className="w-full h-full object-cover object-center block opacity-100"
+              />
             </div>
           </div>
 
@@ -849,7 +808,10 @@ export const AboutPage: React.FC<AboutPageProps> = ({
       </section>
 
       {/* 6. CALL TO ACTION BANNER - Sleek Final CTA */}
-      <section className="relative rounded-3xl border border-cyan-500/30 bg-gradient-to-r from-[#0c2254] via-[#09173b] to-[#060e24] p-8 sm:p-12 shadow-2xl overflow-hidden text-center sm:text-left">
+      <section
+        style={getSectionBgStyle(HOME_SECTION_BACKGROUNDS.digitalGlobe, 'medium')}
+        className="relative rounded-3xl border border-cyan-500/30 bg-gradient-to-r from-[#0c2254] via-[#09173b] to-[#060e24] p-8 sm:p-12 shadow-2xl overflow-hidden text-center sm:text-left"
+      >
         <div className="relative z-10 max-w-2xl space-y-4">
           <span className="text-xs font-mono font-bold tracking-widest uppercase text-cyan-400 block">
             READY TO TAKE THE STAGE?
@@ -862,13 +824,23 @@ export const AboutPage: React.FC<AboutPageProps> = ({
           </p>
 
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 pt-2">
-            <button
-              onClick={onRegisterClick}
-              className="px-7 py-3 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 hover:text-white text-xs sm:text-sm font-bold shadow-lg shadow-rose-500/10 transition-all cursor-pointer flex items-center gap-2"
-            >
-              <Lock className="w-4 h-4 text-rose-400" />
-              <span>Registration Closed</span>
-            </button>
+            {isRegistrationOpen ? (
+              <button
+                onClick={onRegisterClick}
+                className="clay-btn-primary px-7 py-3 rounded-xl text-xs sm:text-sm font-bold text-white shadow-lg shadow-cyan-500/20 transition-all cursor-pointer flex items-center gap-2"
+              >
+                <span>Register Your Squad</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={onRegisterClick}
+                className="px-7 py-3 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 hover:text-white text-xs sm:text-sm font-bold shadow-lg shadow-rose-500/10 transition-all cursor-pointer flex items-center gap-2"
+              >
+                <Lock className="w-4 h-4 text-rose-400" />
+                <span>Registration Closed</span>
+              </button>
+            )}
 
             <button
               onClick={onExploreClick}

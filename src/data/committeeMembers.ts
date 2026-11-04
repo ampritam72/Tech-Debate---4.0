@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+
 export interface CommitteeMemberData {
   id: string;
   name: string;
@@ -346,3 +348,186 @@ export const SORTED_STUDENT_MEMBERS: CommitteeMemberData[] = [
 
 // For backwards compatibility
 export const TOP_EMPTY_CARDS = LEADERSHIP_CARDS;
+
+const COMMITTEE_PHOTOS_CACHE_KEY = 'td4_committee_photo_overrides_v1';
+const COMMITTEE_ROSTER_CACHE_KEY = 'td4_committee_roster_v1';
+
+export interface CommitteeRosterPayload {
+  leadership: CommitteeMemberData[];
+  students: CommitteeMemberData[];
+  photos?: Record<string, string>;
+}
+
+export function getCachedCommitteePhotos(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(COMMITTEE_PHOTOS_CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') return parsed;
+    }
+  } catch {}
+  return {};
+}
+
+export function getCachedCommitteeRoster(): {
+  leadership: CommitteeMemberData[];
+  students: CommitteeMemberData[];
+} {
+  try {
+    const raw = localStorage.getItem(COMMITTEE_ROSTER_CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (
+        parsed &&
+        typeof parsed === 'object' &&
+        Array.isArray(parsed.leadership) &&
+        Array.isArray(parsed.students)
+      ) {
+        return {
+          leadership: parsed.leadership,
+          students: parsed.students,
+        };
+      }
+    }
+  } catch {}
+  return {
+    leadership: LEADERSHIP_CARDS,
+    students: SORTED_STUDENT_MEMBERS,
+  };
+}
+
+export function notifyCommitteePhotosUpdated(photos: Record<string, string>) {
+  try {
+    localStorage.setItem(COMMITTEE_PHOTOS_CACHE_KEY, JSON.stringify(photos));
+    window.dispatchEvent(new CustomEvent('committee-photos-updated', { detail: photos }));
+  } catch {}
+}
+
+export function notifyCommitteeRosterUpdated(payload: CommitteeRosterPayload) {
+  try {
+    localStorage.setItem(
+      COMMITTEE_ROSTER_CACHE_KEY,
+      JSON.stringify({ leadership: payload.leadership, students: payload.students })
+    );
+    if (payload.photos) {
+      localStorage.setItem(COMMITTEE_PHOTOS_CACHE_KEY, JSON.stringify(payload.photos));
+    }
+    window.dispatchEvent(new CustomEvent('committee-roster-updated', { detail: payload }));
+  } catch {}
+}
+
+export function useCommitteePhotos(): Record<string, string> {
+  const [photos, setPhotos] = useState<Record<string, string>>(() => getCachedCommitteePhotos());
+
+  useEffect(() => {
+    let mounted = true;
+    fetch('/api/committee-photos')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (mounted && data && data.photos && typeof data.photos === 'object') {
+          setPhotos(data.photos);
+          try {
+            localStorage.setItem(COMMITTEE_PHOTOS_CACHE_KEY, JSON.stringify(data.photos));
+          } catch {}
+        }
+      })
+      .catch(() => {});
+
+    const handleUpdate = (e: Event) => {
+      const custom = e as CustomEvent<Record<string, string>>;
+      if (custom.detail && typeof custom.detail === 'object') {
+        setPhotos({ ...custom.detail });
+      }
+    };
+    window.addEventListener('committee-photos-updated', handleUpdate);
+    return () => {
+      mounted = false;
+      window.removeEventListener('committee-photos-updated', handleUpdate);
+    };
+  }, []);
+
+  return photos;
+}
+
+export function useCommitteeRoster(): {
+  leadership: CommitteeMemberData[];
+  students: CommitteeMemberData[];
+  photoOverrides: Record<string, string>;
+} {
+  const [roster, setRoster] = useState<{
+    leadership: CommitteeMemberData[];
+    students: CommitteeMemberData[];
+  }>(() => getCachedCommitteeRoster());
+  const [photoOverrides, setPhotoOverrides] = useState<Record<string, string>>(() =>
+    getCachedCommitteePhotos()
+  );
+
+  useEffect(() => {
+    let mounted = true;
+    fetch('/api/committee-roster')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!mounted || !data) return;
+        const nextLeadership = Array.isArray(data.leadership)
+          ? data.leadership
+          : LEADERSHIP_CARDS;
+        const nextStudents = Array.isArray(data.students)
+          ? data.students
+          : SORTED_STUDENT_MEMBERS;
+        setRoster({ leadership: nextLeadership, students: nextStudents });
+        try {
+          localStorage.setItem(
+            COMMITTEE_ROSTER_CACHE_KEY,
+            JSON.stringify({ leadership: nextLeadership, students: nextStudents })
+          );
+        } catch {}
+
+        if (data.photos && typeof data.photos === 'object') {
+          setPhotoOverrides(data.photos);
+          try {
+            localStorage.setItem(COMMITTEE_PHOTOS_CACHE_KEY, JSON.stringify(data.photos));
+          } catch {}
+        }
+      })
+      .catch(() => {});
+
+    const handleRosterUpdate = (e: Event) => {
+      const custom = e as CustomEvent<CommitteeRosterPayload>;
+      if (custom.detail) {
+        setRoster({
+          leadership: Array.isArray(custom.detail.leadership)
+            ? custom.detail.leadership
+            : LEADERSHIP_CARDS,
+          students: Array.isArray(custom.detail.students)
+            ? custom.detail.students
+            : SORTED_STUDENT_MEMBERS,
+        });
+        if (custom.detail.photos) {
+          setPhotoOverrides({ ...custom.detail.photos });
+        }
+      }
+    };
+
+    const handlePhotosUpdate = (e: Event) => {
+      const custom = e as CustomEvent<Record<string, string>>;
+      if (custom.detail && typeof custom.detail === 'object') {
+        setPhotoOverrides({ ...custom.detail });
+      }
+    };
+
+    window.addEventListener('committee-roster-updated', handleRosterUpdate);
+    window.addEventListener('committee-photos-updated', handlePhotosUpdate);
+    return () => {
+      mounted = false;
+      window.removeEventListener('committee-roster-updated', handleRosterUpdate);
+      window.removeEventListener('committee-photos-updated', handlePhotosUpdate);
+    };
+  }, []);
+
+  return {
+    leadership: roster.leadership,
+    students: roster.students,
+    photoOverrides,
+  };
+}
+

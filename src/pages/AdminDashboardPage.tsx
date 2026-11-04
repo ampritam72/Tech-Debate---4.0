@@ -14,12 +14,15 @@ import {
   Crown,
   FileSpreadsheet,
   MessageSquare,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Settings
 } from 'lucide-react';
 import { GlassCard } from '../components/common/GlassCard';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { GoogleSheetBackupSection } from '../components/admin/GoogleSheetBackupSection';
 import { GalleryEditorSection } from '../components/admin/GalleryEditorSection';
+import { CommitteeEditorSection } from '../components/admin/CommitteeEditorSection';
+import { RegistrationControlSection } from '../components/admin/RegistrationControlSection';
 import { useTournament } from '../context/TournamentContext';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { MatchFixture, RoundKey } from '../types';
@@ -44,7 +47,7 @@ export const AdminDashboardPage: React.FC = () => {
 
   const { adminUser, logout } = useAdminAuth();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'teams' | 'payments' | 'fixtures' | 'googlesheet' | 'gallery' | 'inquiries' | 'hof'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'reg-control' | 'teams' | 'payments' | 'fixtures' | 'googlesheet' | 'committee' | 'gallery' | 'inquiries' | 'hof'>('overview');
 
   // Search & filter for Teams
   const [teamSearch, setTeamSearch] = useState('');
@@ -71,22 +74,30 @@ export const AdminDashboardPage: React.FC = () => {
   // Modal / Editing states
   const [editingFixture, setEditingFixture] = useState<MatchFixture | null>(null);
 
-  // Hall of Fame 4.0 editing state
+  // Hall of Fame 4.0 editing state (only load photos uploaded by Admin)
   const current4 = hallOfFame.find(h => h.edition === '4.0') || hallOfFame[3];
   const [hof4ChampionTeam, setHof4ChampionTeam] = useState(current4.champion.teamName);
   const [hof4ChampionMembers, setHof4ChampionMembers] = useState(current4.champion.members.join(', '));
-  const [hof4ChampionPhoto, setHof4ChampionPhoto] = useState(current4.champion.photoUrl || '');
+  const [hof4ChampionPhoto, setHof4ChampionPhoto] = useState(
+    current4.champion.adminUploaded ? current4.champion.photoUrl || '' : ''
+  );
   const [hof4RunnerUpTeam, setHof4RunnerUpTeam] = useState(current4.runnerUp.teamName);
   const [hof4RunnerUpMembers, setHof4RunnerUpMembers] = useState(current4.runnerUp.members.join(', '));
-  const [hof4RunnerUpPhoto, setHof4RunnerUpPhoto] = useState(current4.runnerUp.photoUrl || '');
+  const [hof4RunnerUpPhoto, setHof4RunnerUpPhoto] = useState(
+    current4.runnerUp.adminUploaded ? current4.runnerUp.photoUrl || '' : ''
+  );
   const [hof4EmergingTeam, setHof4EmergingTeam] = useState(current4.emergingTeam?.teamName || 'Emerging Team TBD');
   const [hof4EmergingMembers, setHof4EmergingMembers] = useState(
     (current4.emergingTeam?.members || ['Rising Debaters Award', 'Breakout Performance', 'VU Central Auditorium']).join(', ')
   );
-  const [hof4EmergingPhoto, setHof4EmergingPhoto] = useState(current4.emergingTeam?.photoUrl || '');
+  const [hof4EmergingPhoto, setHof4EmergingPhoto] = useState(
+    current4.emergingTeam?.adminUploaded ? current4.emergingTeam?.photoUrl || '' : ''
+  );
   const [hof4BestDebaterName, setHof4BestDebaterName] = useState(current4.bestTournamentDebater.name);
   const [hof4BestDebaterId, setHof4BestDebaterId] = useState(current4.bestTournamentDebater.studentId);
-  const [hof4BestDebaterPhoto, setHof4BestDebaterPhoto] = useState(current4.bestTournamentDebater.photoUrl || '');
+  const [hof4BestDebaterPhoto, setHof4BestDebaterPhoto] = useState(
+    current4.bestTournamentDebater.adminUploaded ? current4.bestTournamentDebater.photoUrl || '' : ''
+  );
   const [hofSavedMessage, setHofSavedMessage] = useState(false);
 
   // Compute Metrics
@@ -192,11 +203,41 @@ export const AdminDashboardPage: React.FC = () => {
 
   const handleHofImageFile = (
     setter: React.Dispatch<React.SetStateAction<string>>,
-    file?: File | null
+    file?: File | null,
+    slotName: string = 'hof'
   ) => {
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
+      const rawDataUrl = String(ev.target?.result || '');
+      if (!rawDataUrl) return;
+
+      try {
+        // Compress to lightweight WebP on the backend via Sharp
+        const res = await fetch('/api/admin/compress-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            dataUrl: rawDataUrl,
+            slot: slotName,
+            fileName: file.name,
+            maxWidth: 1000,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok && data.webpDataUrl) {
+          setter(data.webpDataUrl);
+          setClearSuccessToast(
+            `Backend compressed "${file.name}" to WebP (${data.originalKB} KB → ${data.compressedKB} KB · ${data.savedPercent}% smaller)`
+          );
+          setTimeout(() => setClearSuccessToast(null), 4000);
+          return;
+        }
+      } catch (err) {
+        console.warn('Backend HOF compression fallback:', err);
+      }
+
+      // Fallback if offline
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
@@ -212,12 +253,12 @@ export const AdminDashboardPage: React.FC = () => {
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
-          setter(canvas.toDataURL('image/jpeg', 0.82));
+          setter(canvas.toDataURL('image/webp', 0.82));
         } else {
-          setter(String(ev.target?.result || ''));
+          setter(rawDataUrl);
         }
       };
-      img.src = String(ev.target?.result || '');
+      img.src = rawDataUrl;
     };
     reader.readAsDataURL(file);
   };
@@ -231,18 +272,21 @@ export const AdminDashboardPage: React.FC = () => {
         batch: '2026 Champions',
         members: hof4ChampionMembers.split(',').map(m => m.trim()),
         photoUrl: hof4ChampionPhoto,
+        adminUploaded: Boolean(hof4ChampionPhoto),
       },
       runnerUp: {
         teamName: hof4RunnerUpTeam,
         batch: '2026 Finalists',
         members: hof4RunnerUpMembers.split(',').map(m => m.trim()),
         photoUrl: hof4RunnerUpPhoto,
+        adminUploaded: Boolean(hof4RunnerUpPhoto),
       },
       emergingTeam: {
         teamName: hof4EmergingTeam,
         batch: '2026 Rising Star',
         members: hof4EmergingMembers.split(',').map(m => m.trim()),
         photoUrl: hof4EmergingPhoto,
+        adminUploaded: Boolean(hof4EmergingPhoto),
       },
       bestTournamentDebater: {
         name: hof4BestDebaterName,
@@ -250,6 +294,7 @@ export const AdminDashboardPage: React.FC = () => {
         studentId: hof4BestDebaterId,
         achievement: 'Conferred Best Tournament Debater of Tech Debate 4.0.',
         photoUrl: hof4BestDebaterPhoto,
+        adminUploaded: Boolean(hof4BestDebaterPhoto),
       }
     });
     setHofSavedMessage(true);
@@ -326,10 +371,12 @@ export const AdminDashboardPage: React.FC = () => {
       <div className="flex flex-nowrap items-center gap-2 mb-8 p-1.5 bg-[#051336]/90 rounded-2xl border border-cyan-500/30 shadow-[0_0_20px_rgba(0,140,255,0.15)] overflow-x-auto scrollbar-none">
         {[
           { id: 'overview', label: 'Overview Metrics', icon: Trophy },
+          { id: 'reg-control', label: 'Reg Open/Close & Dates', icon: Settings },
           { id: 'teams', label: `Teams (${totalTeams})`, icon: Users },
           { id: 'payments', label: `Payments (${pendingPayments} Pending)`, icon: CreditCard },
           { id: 'fixtures', label: `Tournament Bracket (${fixtures.length})`, icon: Calendar },
           { id: 'googlesheet', label: 'Google Sheets Backup', icon: FileSpreadsheet },
+          { id: 'committee', label: 'Committee Members', icon: Users },
           { id: 'gallery', label: 'Gallery Editor', icon: ImageIcon },
           { id: 'inquiries', label: `Helpdesk (${inquiries.filter(i => i.status === 'NEW').length} New)`, icon: MessageSquare },
           { id: 'hof', label: `Publish TD 4.0 Hall of Fame`, icon: Crown },
@@ -356,6 +403,12 @@ export const AdminDashboardPage: React.FC = () => {
       {/* 1. OVERVIEW TAB */}
       {activeTab === 'overview' && (
         <div className="space-y-8">
+          {/* Registration Status & Auto-Close Timestamp Control */}
+          <RegistrationControlSection
+            compact
+            onOpenFullSettings={() => setActiveTab('reg-control')}
+          />
+
           {/* Metric cards */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             <GlassCard className="p-5">
@@ -1128,7 +1181,17 @@ export const AdminDashboardPage: React.FC = () => {
         <GoogleSheetBackupSection teams={teams} />
       )}
 
-      {/* 6. GALLERY EDITOR TAB */}
+      {/* 5.5 REGISTRATION OPEN/CLOSE & DATES CONTROL TAB */}
+      {activeTab === 'reg-control' && (
+        <RegistrationControlSection />
+      )}
+
+      {/* 6. COMMITTEE MEMBERS MANAGEMENT TAB */}
+      {activeTab === 'committee' && (
+        <CommitteeEditorSection />
+      )}
+
+      {/* 7. GALLERY EDITOR TAB */}
       {activeTab === 'gallery' && (
         <GalleryEditorSection />
       )}
@@ -1185,13 +1248,25 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">Champion Picture Upload</label>
+                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">Champion Picture Upload (Admin Only)</label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={e => handleHofImageFile(setHof4ChampionPhoto, e.target.files?.[0])}
                     className="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-mono file:font-bold file:bg-amber-500/20 file:text-amber-300 hover:file:bg-amber-500/30 cursor-pointer"
                   />
+                  {hof4ChampionPhoto && (
+                    <div className="mt-2.5 flex items-center gap-3">
+                      <img src={hof4ChampionPhoto} alt="Champion Preview" className="w-16 h-12 object-cover rounded-lg border border-amber-400/40" />
+                      <button
+                        type="button"
+                        onClick={() => setHof4ChampionPhoto('')}
+                        className="px-2.5 py-1 rounded-md bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400/40 text-rose-300 text-[11px] font-mono font-bold cursor-pointer"
+                      >
+                        Remove Picture
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1222,13 +1297,25 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">Runners Up Picture Upload</label>
+                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">Runners Up Picture Upload (Admin Only)</label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={e => handleHofImageFile(setHof4RunnerUpPhoto, e.target.files?.[0])}
                     className="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-mono file:font-bold file:bg-sky-500/20 file:text-sky-300 hover:file:bg-sky-500/30 cursor-pointer"
                   />
+                  {hof4RunnerUpPhoto && (
+                    <div className="mt-2.5 flex items-center gap-3">
+                      <img src={hof4RunnerUpPhoto} alt="Runner Up Preview" className="w-16 h-12 object-cover rounded-lg border border-sky-400/40" />
+                      <button
+                        type="button"
+                        onClick={() => setHof4RunnerUpPhoto('')}
+                        className="px-2.5 py-1 rounded-md bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400/40 text-rose-300 text-[11px] font-mono font-bold cursor-pointer"
+                      >
+                        Remove Picture
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1259,13 +1346,25 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">Emerging Team Picture Upload</label>
+                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">Emerging Team Picture Upload (Admin Only)</label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={e => handleHofImageFile(setHof4EmergingPhoto, e.target.files?.[0])}
                     className="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-mono file:font-bold file:bg-emerald-500/20 file:text-emerald-300 hover:file:bg-emerald-500/30 cursor-pointer"
                   />
+                  {hof4EmergingPhoto && (
+                    <div className="mt-2.5 flex items-center gap-3">
+                      <img src={hof4EmergingPhoto} alt="Emerging Preview" className="w-16 h-12 object-cover rounded-lg border border-emerald-400/40" />
+                      <button
+                        type="button"
+                        onClick={() => setHof4EmergingPhoto('')}
+                        className="px-2.5 py-1 rounded-md bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400/40 text-rose-300 text-[11px] font-mono font-bold cursor-pointer"
+                      >
+                        Remove Picture
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1300,13 +1399,25 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">Best Debater Picture Upload</label>
+                  <label className="block text-xs font-mono text-slate-600 dark:text-slate-400 mb-1 font-medium">Best Debater Picture Upload (Admin Only)</label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={e => handleHofImageFile(setHof4BestDebaterPhoto, e.target.files?.[0])}
                     className="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-mono file:font-bold file:bg-cyan-500/20 file:text-cyan-300 hover:file:bg-cyan-500/30 cursor-pointer"
                   />
+                  {hof4BestDebaterPhoto && (
+                    <div className="mt-2.5 flex items-center gap-3">
+                      <img src={hof4BestDebaterPhoto} alt="Best Debater Preview" className="w-16 h-12 object-cover rounded-lg border border-cyan-400/40" />
+                      <button
+                        type="button"
+                        onClick={() => setHof4BestDebaterPhoto('')}
+                        className="px-2.5 py-1 rounded-md bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400/40 text-rose-300 text-[11px] font-mono font-bold cursor-pointer"
+                      >
+                        Remove Picture
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 

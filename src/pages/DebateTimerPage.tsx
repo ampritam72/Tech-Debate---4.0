@@ -36,7 +36,7 @@ export const DebateTimerPage: React.FC<DebateTimerPageProps> = ({ onBack }) => {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const totalSpeechSeconds = speechType === 'substantive' ? 4 * 60 : 3 * 60;
+  const totalSpeechSeconds = speechType === 'substantive' ? 5 * 60 : 3 * 60;
   const gracePeriodSeconds = 20;
 
   // Initialize and unlock Web Audio API
@@ -106,25 +106,25 @@ export const DebateTimerPage: React.FC<DebateTimerPageProps> = ({ onBack }) => {
           const next = prev + 1;
 
           if (speechType === 'substantive') {
-            // 4-Minute Substantive Speech Official Rules
+            // 5-Minute Substantive Speech Official Rules (3 Speakers per Team)
             if (next === 60) {
               playBellChime(1);
               setLastBellFired('1:00 Min — Single Bell (POIs Open)');
-            } else if (next === 120 && enable2MinSubBell) {
+            } else if (next === 150 && enable2MinSubBell) {
               playBellChime(1);
-              setLastBellFired('2:00 Min — Single Bell (Mid-Speech Checkpoint)');
-            } else if (next === 180) {
-              playBellChime(1);
-              setLastBellFired('3:00 Min — Single Bell (1-Min Warning • POIs Closed)');
+              setLastBellFired('2:30 Min — Single Bell (Mid-Speech Checkpoint)');
             } else if (next === 240) {
+              playBellChime(1);
+              setLastBellFired('4:00 Min — Single Bell (1-Min Warning • POIs Closed)');
+            } else if (next === 300) {
               playBellChime(2);
-              setLastBellFired('4:00 Min — Double Bell (Official Time Limit Reached)');
-            } else if (next === 260) {
+              setLastBellFired('5:00 Min — Double Bell (Official Time Limit Reached)');
+            } else if (next === 320) {
               playBellChime(3);
-              setLastBellFired('4:20+ Min — Continuous Bell (Overtime Penalty!)');
-            } else if (next > 260 && (next - 260) % 5 === 0) {
+              setLastBellFired('5:20+ Min — Continuous Bell (Overtime Penalty!)');
+            } else if (next > 320 && (next - 320) % 5 === 0) {
               playBellChime(3);
-              setLastBellFired('4:20+ Min — Continuous Bell (Overtime Penalty!)');
+              setLastBellFired('5:20+ Min — Continuous Bell (Overtime Penalty!)');
             }
           } else {
             // 3-Minute Reply Speech Official Rules
@@ -242,25 +242,25 @@ export const DebateTimerPage: React.FC<DebateTimerPageProps> = ({ onBack }) => {
     if (secondsElapsed < 60) {
       phaseStatus = {
         title: 'PROTECTED TIME (0:00 – 1:00 • NO POIs)',
-        desc: 'Opening argument phase. Points of Information (POIs) are protected.',
+        desc: 'Opening argument phase (5-Min Speech). Points of Information (POIs) are protected.',
         badgeClass: 'bg-cyan-500/20 text-cyan-200 border-cyan-400/50',
         ringColor: '#22d3ee',
         clockColor: 'text-white drop-shadow-[0_0_35px_rgba(34,211,238,0.45)]',
         icon: ShieldCheck,
       };
-    } else if (secondsElapsed >= 60 && secondsElapsed < 180) {
+    } else if (secondsElapsed >= 60 && secondsElapsed < 240) {
       phaseStatus = {
-        title: 'FLOOR OPEN FOR POIs (1:00 – 3:00)',
+        title: 'FLOOR OPEN FOR POIs (1:00 – 4:00)',
         desc: '1st Bell sounded at 1:00. Opposing debaters may offer Points of Information.',
         badgeClass: 'bg-emerald-500/25 text-emerald-200 border-emerald-400/60',
         ringColor: '#10b981',
         clockColor: 'text-emerald-300 drop-shadow-[0_0_35px_rgba(16,185,129,0.5)]',
         icon: CheckCircle2,
       };
-    } else if (secondsElapsed >= 180 && secondsElapsed < 240) {
+    } else if (secondsElapsed >= 240 && secondsElapsed < 300) {
       phaseStatus = {
-        title: 'WARNING: 1 MINUTE LEFT (3:00 – 4:00 • POIs CLOSED)',
-        desc: 'Warning Bell sounded at 3:00. POIs are now closed — wrap up key arguments.',
+        title: 'WARNING: 1 MINUTE LEFT (4:00 – 5:00 • POIs CLOSED)',
+        desc: 'Warning Bell sounded at 4:00. POIs are now closed — wrap up key arguments.',
         badgeClass: 'bg-amber-500/25 text-amber-200 border-amber-400/60',
         ringColor: '#fbbf24',
         clockColor: 'text-amber-300 drop-shadow-[0_0_35px_rgba(251,191,36,0.55)]',
@@ -268,8 +268,8 @@ export const DebateTimerPage: React.FC<DebateTimerPageProps> = ({ onBack }) => {
       };
     } else if (isGracePeriod) {
       phaseStatus = {
-        title: 'TIME UP! 20s GRACE PERIOD (4:00 – 4:20)',
-        desc: 'Double Bell sounded at 4:00! Conclude your final sentence immediately.',
+        title: 'TIME UP! 20s GRACE PERIOD (5:00 – 5:20)',
+        desc: 'Double Bell sounded at 5:00! Conclude your final sentence immediately.',
         badgeClass: 'bg-rose-500/30 text-rose-200 border-rose-400 animate-pulse',
         ringColor: '#f43f5e',
         clockColor: 'text-rose-400 drop-shadow-[0_0_40px_rgba(244,63,94,0.75)]',
@@ -277,7 +277,7 @@ export const DebateTimerPage: React.FC<DebateTimerPageProps> = ({ onBack }) => {
       };
     } else {
       phaseStatus = {
-        title: 'OVERTIME PENALTY! (4:20+ CONTINUOUS BELL)',
+        title: 'OVERTIME PENALTY! (5:20+ CONTINUOUS BELL)',
         desc: 'Grace period exceeded! Continuous bell ringing — stop speaking immediately.',
         badgeClass: 'bg-rose-600/40 text-white border-rose-400 animate-pulse',
         ringColor: '#e11d48',
@@ -288,8 +288,8 @@ export const DebateTimerPage: React.FC<DebateTimerPageProps> = ({ onBack }) => {
   } else {
     if (secondsElapsed < 60) {
       phaseStatus = {
-        title: 'REPLY SPEECH OPENING (0:00 – 1:00 • NO POIs)',
-        desc: 'Delivered by 1st or 2nd speaker only. No POIs allowed in Reply Speeches.',
+        title: 'REBUTTAL / REPLY OPENING (0:00 – 1:00 • NO POIs)',
+        desc: '3-Minute Rebuttal / Reply Speech. Delivered by 1st or 2nd speaker only.',
         badgeClass: 'bg-cyan-500/20 text-cyan-200 border-cyan-400/50',
         ringColor: '#22d3ee',
         clockColor: 'text-white drop-shadow-[0_0_35px_rgba(34,211,238,0.45)]',
@@ -376,7 +376,7 @@ export const DebateTimerPage: React.FC<DebateTimerPageProps> = ({ onBack }) => {
           </div>
         </div>
 
-        {/* Speech Mode Selector (4 Mins Substantive vs 3 Mins Reply) */}
+        {/* Speech Mode Selector (5 Mins Substantive vs 3 Mins Rebuttal / Reply) */}
         <div className="flex items-center gap-2 bg-[#040f25] p-1.5 rounded-2xl border border-cyan-500/30">
           <button
             type="button"
@@ -388,7 +388,7 @@ export const DebateTimerPage: React.FC<DebateTimerPageProps> = ({ onBack }) => {
             }`}
           >
             <Mic className="w-4 h-4" />
-            <span>4 Mins (Substantive Speech)</span>
+            <span>5 Mins (3 Speakers • Substantive)</span>
           </button>
 
           <button
@@ -401,7 +401,7 @@ export const DebateTimerPage: React.FC<DebateTimerPageProps> = ({ onBack }) => {
             }`}
           >
             <Sparkles className="w-4 h-4" />
-            <span>3 Mins (Reply Speech)</span>
+            <span>3 Mins (Rebuttal / Reply Speech)</span>
           </button>
         </div>
 
@@ -567,15 +567,15 @@ export const DebateTimerPage: React.FC<DebateTimerPageProps> = ({ onBack }) => {
               onClick={() => setEnable2MinSubBell((v) => !v)}
               className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
                 enable2MinSubBell
-                  ? secondsElapsed >= 120
+                  ? secondsElapsed >= 150
                     ? 'bg-cyan-500/25 border-cyan-400 text-white'
                     : 'bg-cyan-950/60 border-cyan-400/50 text-cyan-200'
                   : 'bg-slate-900/50 border-slate-800/80 text-slate-400 hover:border-slate-700'
               }`}
-              title="Click to enable/disable optional 2:00 Min checkpoint bell"
+              title="Click to enable/disable optional 2:30 Min checkpoint bell"
             >
               <div className="flex items-center justify-between font-mono text-xs sm:text-sm font-bold">
-                <span>02:00 Min</span>
+                <span>02:30 Min</span>
                 <span>{enable2MinSubBell ? '🔔 1 Bell ON' : 'Optional'}</span>
               </div>
               <div className="text-xs font-semibold mt-1">Halfway Mark</div>
@@ -586,13 +586,13 @@ export const DebateTimerPage: React.FC<DebateTimerPageProps> = ({ onBack }) => {
 
             <div
               className={`p-3 rounded-2xl border transition-all ${
-                secondsElapsed >= 180
+                secondsElapsed >= 240
                   ? 'bg-amber-500/20 border-amber-400 text-white shadow-[0_0_15px_rgba(251,191,36,0.25)]'
                   : 'bg-slate-900/90 border-slate-800 text-slate-300'
               }`}
             >
               <div className="flex items-center justify-between font-mono text-xs sm:text-sm font-bold text-amber-300">
-                <span>03:00 Min</span>
+                <span>04:00 Min</span>
                 <span>🔔 1 Bell</span>
               </div>
               <div className="text-xs font-semibold text-white mt-1">Warning (POIs Close)</div>
@@ -601,13 +601,13 @@ export const DebateTimerPage: React.FC<DebateTimerPageProps> = ({ onBack }) => {
 
             <div
               className={`p-3 rounded-2xl border transition-all ${
-                secondsElapsed >= 240
+                secondsElapsed >= 300
                   ? 'bg-rose-500/25 border-rose-400 text-white shadow-[0_0_15px_rgba(244,63,94,0.3)]'
                   : 'bg-slate-900/90 border-slate-800 text-slate-300'
               }`}
             >
               <div className="flex items-center justify-between font-mono text-xs sm:text-sm font-bold text-rose-300">
-                <span>04:00 Min</span>
+                <span>05:00 Min</span>
                 <span>🔔🔔 2 Bells</span>
               </div>
               <div className="text-xs font-semibold text-white mt-1">Time Limit Reached</div>
@@ -616,13 +616,13 @@ export const DebateTimerPage: React.FC<DebateTimerPageProps> = ({ onBack }) => {
 
             <div
               className={`p-3 rounded-2xl border transition-all col-span-2 sm:col-span-1 ${
-                secondsElapsed >= 260
+                secondsElapsed >= 320
                   ? 'bg-rose-600/35 border-rose-400 text-white animate-pulse'
                   : 'bg-slate-900/90 border-slate-800 text-slate-300'
               }`}
             >
               <div className="flex items-center justify-between font-mono text-xs sm:text-sm font-bold text-rose-400">
-                <span>04:20+ Min</span>
+                <span>05:20+ Min</span>
                 <span>🔔🔔🔔 Auto</span>
               </div>
               <div className="text-xs font-semibold text-white mt-1">Overtime Penalty</div>
