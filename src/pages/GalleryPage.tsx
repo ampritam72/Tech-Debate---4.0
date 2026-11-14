@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   Image as ImageIcon,
   Maximize2,
@@ -33,6 +33,15 @@ export const GalleryPage: React.FC = () => {
     photo: GalleryPhoto;
     index: number;
   } | null>(null);
+  const categoryScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollCategoryTabs = (direction: 'left' | 'right') => {
+    if (!categoryScrollRef.current) return;
+    categoryScrollRef.current.scrollBy({
+      left: direction === 'left' ? -240 : 240,
+      behavior: 'smooth',
+    });
+  };
 
   const categories = [
     { id: 'ALL', label: 'All Moments' },
@@ -109,21 +118,54 @@ export const GalleryPage: React.FC = () => {
         centered
       />
 
-      {/* Category Filter Tabs */}
-      <div className="flex flex-nowrap items-center justify-start sm:justify-center gap-2 mb-10 p-1.5 bg-white/95 dark:bg-[#0c2248]/80 rounded-2xl border border-sky-200/90 dark:border-sky-400/30 backdrop-blur-xl shadow-[0_8px_30px_rgba(14,165,233,0.08)] overflow-x-auto scrollbar-none w-fit max-w-full mx-auto">
-        {categories.map((cat) => (
-          <button
-            key={cat.id}
-            onClick={() => setSelectedCategory(cat.id)}
-            className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-              selectedCategory === cat.id
-                ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-[0_4px_16px_rgba(14,165,233,0.35)]'
-                : 'text-slate-600 dark:text-slate-300 hover:text-sky-700 dark:hover:text-white hover:bg-sky-50 dark:hover:bg-white/5'
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
+      {/* Category Filter Tabs with Left/Right Slider Buttons */}
+      <div className="relative flex items-center gap-2 mb-10 p-2 bg-white/95 dark:bg-[#0c2248]/85 rounded-2xl border border-sky-200/90 dark:border-sky-400/35 backdrop-blur-xl shadow-[0_8px_30px_rgba(14,165,233,0.12)] w-fit max-w-full mx-auto">
+        <button
+          type="button"
+          onClick={() => scrollCategoryTabs('left')}
+          aria-label="Scroll categories left"
+          title="Slide Left"
+          className="w-8 h-8 rounded-xl bg-[#071839] hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 border border-cyan-400/50 flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-sm active:scale-95"
+        >
+          <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+        </button>
+
+        <div
+          ref={categoryScrollRef}
+          className="flex flex-nowrap items-center gap-2 overflow-x-auto admin-table-scroll pb-1 pt-0.5 px-1 scroll-smooth"
+        >
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={(e) => {
+                setSelectedCategory(cat.id);
+                e.currentTarget.scrollIntoView({
+                  behavior: 'smooth',
+                  inline: 'center',
+                  block: 'nearest',
+                });
+              }}
+              className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                selectedCategory === cat.id
+                  ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-[0_4px_16px_rgba(14,165,233,0.35)]'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-sky-700 dark:hover:text-white hover:bg-sky-50 dark:hover:bg-white/5'
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => scrollCategoryTabs('right')}
+          aria-label="Scroll categories right"
+          title="Slide Right"
+          className="w-8 h-8 rounded-xl bg-[#071839] hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 border border-cyan-400/50 flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-sm active:scale-95"
+        >
+          <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+        </button>
       </div>
 
       {/* Photo Grid - Every Card Opens Multi-Photo Popup Slider on Click */}

@@ -1291,7 +1291,7 @@ app.post('/api/admin/gallery/upload', async (req, res) => {
         .slice(0, 32) || 'photo';
 
       // Compress and convert to lightweight WebP on the backend via Sharp
-      const compressedBuffer = await sharp(rawBuffer, { failOnError: false })
+      const compressedBuffer = await sharp(rawBuffer, { failOn: 'none' })
         .rotate()
         .resize({ width: 1600, height: 1200, fit: 'inside', withoutEnlargement: true })
         .webp({ quality: 80, effort: 4 })
@@ -1822,7 +1822,7 @@ app.post('/api/admin/committee/upload', async (req, res) => {
     const originalKB = Math.max(1, Math.round(rawBuffer.byteLength / 1024));
 
     // Compress and resize to 4:5 portrait WebP on backend
-    const compressedBuffer = await sharp(rawBuffer, { failOnError: false })
+    const compressedBuffer = await sharp(rawBuffer, { failOn: 'none' })
       .rotate()
       .resize({ width: 720, height: 900, fit: 'cover', position: 'top', withoutEnlargement: true })
       .webp({ quality: 82, effort: 4 })
@@ -1902,7 +1902,7 @@ app.post('/api/admin/compress-image', async (req, res) => {
     const rawBuffer = Buffer.from(match[2], 'base64');
     const originalKB = Math.max(1, Math.round(rawBuffer.byteLength / 1024));
 
-    const compressedBuffer = await sharp(rawBuffer, { failOnError: false })
+    const compressedBuffer = await sharp(rawBuffer, { failOn: 'none' })
       .rotate()
       .resize({
         width: Number(maxWidth) || 1000,
@@ -1971,7 +1971,7 @@ async function getCompressedWebpBuffer(filePath: string): Promise<Buffer> {
   }
 
   const rawBuf = fs.readFileSync(filePath);
-  const webpBuf = await sharp(rawBuf, { failOnError: false })
+  const webpBuf = await sharp(rawBuf, { failOn: 'none' })
     .rotate()
     .resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true })
     .webp({ quality: 80, effort: 4 })

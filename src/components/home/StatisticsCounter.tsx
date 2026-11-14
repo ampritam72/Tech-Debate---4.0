@@ -21,7 +21,7 @@ export const StatisticsCounter: React.FC = () => {
     return acc + (validMembers.length > 0 ? validMembers.length : 3);
   }, 0);
 
-  const matchesCount = fixtures.length > 0 ? fixtures.length : 31;
+  const matchesCount = fixtures.length >= 63 ? fixtures.length : 63;
   const editionsCount = hallOfFame.length > 0 ? hallOfFame.length : 4;
 
   const stats = [

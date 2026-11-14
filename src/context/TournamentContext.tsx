@@ -12,6 +12,7 @@ import {
   ContactInquiry,
 } from '../types';
 import { StorageService } from '../services/storage';
+import { INITIAL_FIXTURES } from '../services/mockData';
 import { ApiService } from '../services/api';
 import {
   db,
@@ -415,7 +416,7 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       if (!initialMigrationDone.current) {
         initialMigrationDone.current = true;
-        if (pgFixtures && pgFixtures.length > 0) setFixtures(pgFixtures);
+        if (pgFixtures && pgFixtures.length >= 63) setFixtures(pgFixtures);
         if (pgNotices && pgNotices.length > 0) setNotices(pgNotices);
         if (pgHof && pgHof.length > 0) setHallOfFame(pgHof);
       }
@@ -491,9 +492,14 @@ export const TournamentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           if (data && data.id) firestoreFixtures.push(data);
         });
         if (firestoreFixtures.length > 0) {
-          firestoreFixtures.sort((a, b) => (a.matchNumber || 0) - (b.matchNumber || 0));
-          setFixtures(firestoreFixtures);
-          StorageService.saveFixtures(firestoreFixtures);
+          const mergedMap = new Map<string, MatchFixture>();
+          INITIAL_FIXTURES.forEach((f) => mergedMap.set(f.id, f));
+          firestoreFixtures.forEach((f) => mergedMap.set(f.id, f));
+          const mergedFixtures = Array.from(mergedMap.values()).sort(
+            (a, b) => (a.matchNumber || 0) - (b.matchNumber || 0)
+          );
+          setFixtures(mergedFixtures);
+          StorageService.saveFixtures(mergedFixtures);
         }
       },
       (err) => {

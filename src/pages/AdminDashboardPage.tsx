@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Users, 
   CreditCard, 
@@ -15,7 +15,9 @@ import {
   FileSpreadsheet,
   MessageSquare,
   Image as ImageIcon,
-  Settings
+  Settings,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { GlassCard } from '../components/common/GlassCard';
 import { StatusBadge } from '../components/common/StatusBadge';
@@ -48,6 +50,15 @@ export const AdminDashboardPage: React.FC = () => {
   const { adminUser, logout } = useAdminAuth();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'reg-control' | 'teams' | 'payments' | 'fixtures' | 'googlesheet' | 'committee' | 'gallery' | 'inquiries' | 'hof'>('overview');
+  const tabsScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollAdminTabs = (direction: 'left' | 'right') => {
+    if (!tabsScrollRef.current) return;
+    tabsScrollRef.current.scrollBy({
+      left: direction === 'left' ? -320 : 320,
+      behavior: 'smooth',
+    });
+  };
 
   // Search & filter for Teams
   const [teamSearch, setTeamSearch] = useState('');
@@ -367,37 +378,70 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs navigation */}
-      <div className="flex flex-nowrap items-center gap-2 mb-8 p-1.5 bg-[#051336]/90 rounded-2xl border border-cyan-500/30 shadow-[0_0_20px_rgba(0,140,255,0.15)] overflow-x-auto scrollbar-none">
-        {[
-          { id: 'overview', label: 'Overview Metrics', icon: Trophy },
-          { id: 'reg-control', label: 'Reg Open/Close & Dates', icon: Settings },
-          { id: 'teams', label: `Teams (${totalTeams})`, icon: Users },
-          { id: 'payments', label: `Payments (${pendingPayments} Pending)`, icon: CreditCard },
-          { id: 'fixtures', label: `Tournament Bracket (${fixtures.length})`, icon: Calendar },
-          { id: 'googlesheet', label: 'Google Sheets Backup', icon: FileSpreadsheet },
-          { id: 'committee', label: 'Committee Members', icon: Users },
-          { id: 'gallery', label: 'Gallery Editor', icon: ImageIcon },
-          { id: 'inquiries', label: `Helpdesk (${inquiries.filter(i => i.status === 'NEW').length} New)`, icon: MessageSquare },
-          { id: 'hof', label: `Publish TD 4.0 Hall of Fame`, icon: Crown },
-        ].map(tab => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                isActive
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_15px_rgba(34,211,238,0.4)]'
-                  : 'text-slate-300 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
+      {/* Tabs navigation with Left/Right Slider Buttons & Visible Horizontal Scrollbar */}
+      <div className="relative flex items-center gap-2 mb-8 p-2 bg-[#051336]/95 rounded-2xl border border-cyan-500/35 shadow-[0_0_25px_rgba(0,140,255,0.18)]">
+        <button
+          type="button"
+          onClick={() => scrollAdminTabs('left')}
+          aria-label="Scroll tabs left"
+          title="Slide Left"
+          className="w-9 h-9 rounded-xl bg-[#092054] hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 border border-cyan-400/50 flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-md active:scale-95"
+        >
+          <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+        </button>
+
+        <div
+          ref={tabsScrollRef}
+          className="flex-1 flex flex-nowrap items-center gap-2 overflow-x-auto admin-table-scroll pb-1.5 pt-0.5 px-1 scroll-smooth"
+        >
+          {[
+            { id: 'overview', label: 'Overview Metrics', icon: Trophy },
+            { id: 'reg-control', label: 'Reg Open/Close & Dates', icon: Settings },
+            { id: 'teams', label: `Teams (${totalTeams})`, icon: Users },
+            { id: 'payments', label: `Payments (${pendingPayments} Pending)`, icon: CreditCard },
+            { id: 'fixtures', label: `Tournament Bracket (${fixtures.length})`, icon: Calendar },
+            { id: 'googlesheet', label: 'Google Sheets Backup', icon: FileSpreadsheet },
+            { id: 'committee', label: 'Committee Members', icon: Users },
+            { id: 'gallery', label: 'Gallery Editor', icon: ImageIcon },
+            { id: 'inquiries', label: `Helpdesk (${inquiries.filter(i => i.status === 'NEW').length} New)`, icon: MessageSquare },
+            { id: 'hof', label: `Publish TD 4.0 Hall of Fame`, icon: Crown },
+          ].map(tab => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={(e) => {
+                  setActiveTab(tab.id as any);
+                  e.currentTarget.scrollIntoView({
+                    behavior: 'smooth',
+                    inline: 'center',
+                    block: 'nearest',
+                  });
+                }}
+                className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  isActive
+                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_15px_rgba(34,211,238,0.4)]'
+                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => scrollAdminTabs('right')}
+          aria-label="Scroll tabs right"
+          title="Slide Right"
+          className="w-9 h-9 rounded-xl bg-[#092054] hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 border border-cyan-400/50 flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-md active:scale-95"
+        >
+          <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+        </button>
       </div>
 
       {/* 1. OVERVIEW TAB */}

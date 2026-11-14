@@ -89,7 +89,11 @@ export const StorageService = {
     } catch {}
   },
 
-  getFixtures: (): MatchFixture[] => safeGet(STORAGE_KEYS.FIXTURES, INITIAL_FIXTURES),
+  getFixtures: (): MatchFixture[] => {
+    const stored = safeGet<MatchFixture[]>(STORAGE_KEYS.FIXTURES, INITIAL_FIXTURES);
+    if (!Array.isArray(stored) || stored.length < 63) return INITIAL_FIXTURES;
+    return stored;
+  },
   saveFixtures: (fixtures: MatchFixture[]) => safeSet(STORAGE_KEYS.FIXTURES, fixtures),
 
   getHallOfFame: (): HallOfFameEdition[] => safeGet(STORAGE_KEYS.HALL_OF_FAME, HALL_OF_FAME),
