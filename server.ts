@@ -227,8 +227,8 @@ app.get('/api/teams', async (req, res) => {
 
     res.json(populatedTeams);
   } catch (error: any) {
-    console.error('Error fetching teams:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch teams' });
+    console.error('Error fetching teams:', error?.cause?.message || error?.message || error);
+    res.status(503).json({ error: 'Teams database temporarily unavailable. Please retry shortly.' });
   }
 });
 
@@ -760,8 +760,8 @@ app.get('/api/fixtures', async (req, res) => {
     });
     res.json(parsed);
   } catch (error: any) {
-    console.error('Error fetching fixtures:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch fixtures' });
+    console.error('Error fetching fixtures:', error?.cause?.message || error?.message || error);
+    res.status(503).json({ error: 'Fixtures database temporarily unavailable. Please retry shortly.' });
   }
 });
 
@@ -771,7 +771,7 @@ app.post('/api/admin/fixtures', async (req, res) => {
     const fixtureData = req.body;
     const newId = fixtureData.id || `M-${Date.now().toString().slice(-6)}`;
 
-    await db.insert(fixtures).values({
+    await withDbRetry(() => db.insert(fixtures).values({
       id: newId,
       round: fixtureData.round || 'ROUND_OF_32',
       bracketPosition: fixtureData.bracketPosition || 1,
@@ -790,7 +790,7 @@ app.post('/api/admin/fixtures', async (req, res) => {
       scoreTeam1: fixtureData.scoreTeam1 ? String(fixtureData.scoreTeam1) : null,
       scoreTeam2: fixtureData.scoreTeam2 ? String(fixtureData.scoreTeam2) : null,
       bestSpeakerName: fixtureData.bestSpeakerName || null
-    });
+    }));
 
     res.status(201).json({ success: true, id: newId });
   } catch (error: any) {
@@ -823,7 +823,7 @@ app.patch('/api/admin/fixtures/:id', async (req, res) => {
       valuesToUpdate.adjudicators = Array.isArray(updates.adjudicators) ? JSON.stringify(updates.adjudicators) : updates.adjudicators;
     }
 
-    await db.update(fixtures).set(valuesToUpdate).where(eq(fixtures.id, id));
+    await withDbRetry(() => db.update(fixtures).set(valuesToUpdate).where(eq(fixtures.id, id)));
     res.json({ success: true, message: 'Fixture updated successfully' });
   } catch (error: any) {
     console.error('Fixture update error:', error);
@@ -835,7 +835,7 @@ app.patch('/api/admin/fixtures/:id', async (req, res) => {
 app.delete('/api/admin/fixtures/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    await db.delete(fixtures).where(eq(fixtures.id, id));
+    await withDbRetry(() => db.delete(fixtures).where(eq(fixtures.id, id)));
     res.json({ success: true, message: 'Fixture deleted' });
   } catch (error: any) {
     console.error('Fixture delete error:', error);
@@ -855,8 +855,8 @@ app.get('/api/notices', async (req, res) => {
       publishedAt: n.publishedAt ? n.publishedAt.toISOString() : new Date().toISOString()
     })));
   } catch (error: any) {
-    console.error('Notices error:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch notices' });
+    console.error('Notices error:', error?.cause?.message || error?.message || error);
+    res.status(503).json({ error: 'Notices database temporarily unavailable. Please retry shortly.' });
   }
 });
 
@@ -864,13 +864,13 @@ app.post('/api/admin/notices', async (req, res) => {
   try {
     const { title, category, content, isPinned } = req.body;
     const newId = `n-${Date.now()}`;
-    await db.insert(notices).values({
+    await withDbRetry(() => db.insert(notices).values({
       id: newId,
       title,
       category,
       content,
       isPinned: !!isPinned
-    });
+    }));
     res.status(201).json({ success: true, id: newId });
   } catch (error: any) {
     console.error('Notice create error:', error);
@@ -881,7 +881,7 @@ app.post('/api/admin/notices', async (req, res) => {
 app.delete('/api/admin/notices/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    await db.delete(notices).where(eq(notices.id, id));
+    await withDbRetry(() => db.delete(notices).where(eq(notices.id, id)));
     res.json({ success: true, message: 'Notice deleted' });
   } catch (error: any) {
     console.error('Notice delete error:', error);
@@ -926,8 +926,8 @@ app.get('/api/hall-of-fame', async (req, res) => {
     }));
     res.json(parsed);
   } catch (error: any) {
-    console.error('HOF error:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch hall of fame' });
+    console.error('HOF error:', error?.cause?.message || error?.message || error);
+    res.status(503).json({ error: 'Hall of Fame database temporarily unavailable. Please retry shortly.' });
   }
 });
 
@@ -953,7 +953,7 @@ app.patch('/api/admin/hall-of-fame/:edition', async (req, res) => {
     if (updates.finalMatchBestDebater?.batch !== undefined) valuesToUpdate.finalBestDebaterBatch = updates.finalMatchBestDebater.batch;
     if (updates.finalMatchBestDebater?.studentId !== undefined) valuesToUpdate.finalBestDebaterId = updates.finalMatchBestDebater.studentId;
 
-    await db.update(hallOfFame).set(valuesToUpdate).where(eq(hallOfFame.edition, edition));
+    await withDbRetry(() => db.update(hallOfFame).set(valuesToUpdate).where(eq(hallOfFame.edition, edition)));
     res.json({ success: true, message: `Hall of Fame ${edition} updated` });
   } catch (error: any) {
     console.error('HOF update error:', error);
@@ -972,22 +972,25 @@ app.post('/api/auth/sync', async (req, res) => {
       return res.status(400).json({ error: 'UID and email required' });
     }
 
-    const existing = await db.select().from(users).where(eq(users.uid, uid));
-    if (existing.length === 0) {
-      const isSuperAdmin = 
-        email === 'abirmahmudpritam001@gmail.com' || 
-        email.toLowerCase() === 'admin@techdebate4.com' || 
-        email.includes('admin');
-      const newUser = await db.insert(users).values({
-        uid,
-        email,
-        displayName: displayName || email.split('@')[0],
-        role: isSuperAdmin ? 'ADMIN' : 'USER'
-      }).returning();
-      return res.json({ user: newUser[0] });
-    }
+    const userRecord = await withDbRetry(async () => {
+      const existing = await db.select().from(users).where(eq(users.uid, uid));
+      if (existing.length === 0) {
+        const isSuperAdmin = 
+          email === 'abirmahmudpritam001@gmail.com' || 
+          email.toLowerCase() === 'admin@techdebate4.com' || 
+          email.includes('admin');
+        const newUser = await db.insert(users).values({
+          uid,
+          email,
+          displayName: displayName || email.split('@')[0],
+          role: isSuperAdmin ? 'ADMIN' : 'USER'
+        }).returning();
+        return newUser[0];
+      }
+      return existing[0];
+    });
 
-    res.json({ user: existing[0] });
+    res.json({ user: userRecord });
   } catch (error: any) {
     console.error('Auth sync error:', error);
     res.status(500).json({ error: error.message || 'Failed to sync user' });
@@ -999,25 +1002,30 @@ function hashPassword(password: string, salt: string): string {
   return crypto.createHash('sha256').update(password + ':' + salt).digest('hex');
 }
 
+let adminAccountEnsured = false;
 async function ensureAdminAccounts() {
+  if (adminAccountEnsured) return;
   try {
     const salt = 'td4_secure_salt_2026_cse';
     const passwordHash = hashPassword('techdebate4@!!', salt);
-    const existing = await db.select().from(adminAccounts).where(eq(adminAccounts.email, 'admin@techdebate4.com'));
-    if (existing.length === 0) {
-      await db.insert(adminAccounts).values({
-        email: 'admin@techdebate4.com',
-        passwordHash,
-        salt,
-        role: 'Event Super Admin',
-        displayName: 'Tech Debate 4.0 Super Admin'
-      });
-      console.log('Seeded admin@techdebate4.com in database admin_accounts table');
-    } else {
-      await db.update(adminAccounts)
-        .set({ passwordHash, salt })
-        .where(eq(adminAccounts.email, 'admin@techdebate4.com'));
-    }
+    await withDbRetry(async () => {
+      const existing = await db.select().from(adminAccounts).where(eq(adminAccounts.email, 'admin@techdebate4.com'));
+      if (existing.length === 0) {
+        await db.insert(adminAccounts).values({
+          email: 'admin@techdebate4.com',
+          passwordHash,
+          salt,
+          role: 'Event Super Admin',
+          displayName: 'Tech Debate 4.0 Super Admin'
+        });
+        console.log('Seeded admin@techdebate4.com in database admin_accounts table');
+      } else {
+        await db.update(adminAccounts)
+          .set({ passwordHash, salt })
+          .where(eq(adminAccounts.email, 'admin@techdebate4.com'));
+      }
+    });
+    adminAccountEnsured = true;
   } catch (err) {
     console.error('Error ensuring admin accounts in database:', err);
   }
@@ -1026,6 +1034,7 @@ async function ensureAdminAccounts() {
 // POST /api/auth/admin-login - Secure Database Verification
 app.post('/api/auth/admin-login', async (req, res) => {
   try {
+    await ensureAdminAccounts();
     const email = (req.body.email || '').trim().toLowerCase();
     const password = (req.body.password || '').trim();
 
@@ -1052,9 +1061,11 @@ app.post('/api/auth/admin-login', async (req, res) => {
     }
 
     // Update lastLoginAt
-    await db.update(adminAccounts)
-      .set({ lastLoginAt: new Date() })
-      .where(eq(adminAccounts.id, account.id));
+    await withDbRetry(() =>
+      db.update(adminAccounts)
+        .set({ lastLoginAt: new Date() })
+        .where(eq(adminAccounts.id, account.id))
+    );
 
     res.json({
       success: true,
@@ -2023,7 +2034,6 @@ async function startServer() {
   ensureImageDirectories();
   ensureDefaultRulebookPdf();
   await preOptimizePublicFolderImages();
-  await ensureAdminAccounts();
 
   // Transparent Backend WebP Compression Middleware for all Developer & Admin images in public/
   app.use(async (req, res, next) => {
